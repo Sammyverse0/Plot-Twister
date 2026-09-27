@@ -1,0 +1,179 @@
+using System;
+using TMPro;
+using UnityEditor.Search;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+
+public class FPSMovement : MonoBehaviour
+{
+    [Header("Speed")]
+    [SerializeField] private float walkSpeed = 5f;
+    [SerializeField] private float runSpeed = 8f;
+    [SerializeField] private float crouchSpeed = 2f;
+
+    [Header("Jump and Fall")]
+    [SerializeField] private float jumpForce = 7f;
+    [SerializeField] private float gravity = -12f;
+    [SerializeField] private float initialFallVelocity = -2f;
+
+    [Header("Crouching")]
+    [SerializeField] private float standingHeight = 2f;
+    [SerializeField] private float crouchingHeight = 1f;
+    [SerializeField] private float crouchTransitionSpeed = 10f;
+    [SerializeField] private float cameraOffset = 0.4f;
+
+    [Header("References")]
+    [SerializeField] private InputActionReference moveAction;
+    [SerializeField] private InputActionReference jumpAction;
+    [SerializeField] private Transform cameraTransform;
+    [SerializeField] private InputActionReference crouchAction;
+
+    [SerializeField] private InputActionReference sprintAction;
+
+    private CharacterController _characterController;
+    private Vector2 _moveInput;
+    private bool _isGrounded;
+    private float _verticleVelocity;
+    private bool _isRunning;
+    private bool _isCrouching;
+    private float _targetHeight;
+
+    private void Awake()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        _characterController = GetComponent<CharacterController>();
+        _targetHeight = standingHeight;
+    }
+
+    private void OnEnable()
+    {
+        moveAction.action.performed += StoreMovementInput;
+        moveAction.action.canceled += StoreMovementInput;
+        jumpAction.action.performed += Jump;
+        crouchAction.action.performed += Crouch;
+        sprintAction.action.performed += Sprint;
+        sprintAction.action.canceled += Sprint;
+
+    }
+
+
+    private void OnDisable()
+    {
+        moveAction.action.performed -= StoreMovementInput;
+        moveAction.action.canceled -= StoreMovementInput;
+        jumpAction.action.performed -= Jump;
+        crouchAction.action.performed -= Crouch;
+        sprintAction.action.performed -= Sprint;
+        sprintAction.action.canceled -= Sprint;
+    }
+
+
+
+    private void Update()
+    {
+        _isGrounded = _characterController.isGrounded;
+
+        HandleGravity();
+        HandleMovement();
+        HandleCrouchTransition();
+
+    }
+
+    private void StoreMovementInput(InputAction.CallbackContext context)
+    {
+        _moveInput = context.ReadValue<Vector2>();
+    }
+    private void Jump(InputAction.CallbackContext context)
+    {
+        if (_isGrounded)
+        {
+            _verticleVelocity = jumpForce;
+        }
+
+    }
+
+    private void Sprint(InputAction.CallbackContext context)
+    {
+        _isRunning = context.performed;
+    }
+
+    private void Crouch(InputAction.CallbackContext context)
+    {
+        if (_isCrouching)
+        {
+            if (!CanStandUp())
+            {
+                return;
+            }
+            _targetHeight = standingHeight;
+
+        }
+        else
+        {
+            _targetHeight = crouchingHeight;
+        }
+
+        _isCrouching = !_isCrouching;
+    }
+
+    private bool CanStandUp()
+    {
+        //Used capsule cast to check if there is enough space above the player to stand up, did not use simple racast bcuz it fails at edges.
+        return !Physics.CapsuleCast(
+            transform.position + _characterController.center,
+            transform.position + (Vector3.up * _characterController.height / 2),
+            _characterController.radius,
+            Vector3.up
+            );
+    }
+
+    private void HandleGravity()
+    {
+        if (_isGrounded && _verticleVelocity < 0)
+        {
+            _verticleVelocity = initialFallVelocity;
+        }
+
+        _verticleVelocity += gravity * Time.deltaTime;
+    }
+
+    private void HandleMovement()
+    {
+        var move = cameraTransform.TransformDirection(new Vector3(_moveInput.x, 0, _moveInput.y)).normalized;
+        var currentSpeed = _isCrouching ? crouchSpeed : _isRunning ? runSpeed : walkSpeed;
+        var finalMove = move * currentSpeed;
+        finalMove.y = _verticleVelocity;
+
+        CollisionFlags collisions = _characterController.Move(finalMove * Time.deltaTime);
+
+        if ((collisions & CollisionFlags.Above) != 0)
+        {
+            _verticleVelocity = initialFallVelocity;
+        }
+    }
+
+    private void HandleCrouchTransition()
+    {
+        var currentHeight = _characterController.height;
+        if (Mathf.Abs(currentHeight - _targetHeight) > 0.01f)
+        {
+            var newHeight = Mathf.Lerp(currentHeight, _targetHeight, crouchTransitionSpeed * Time.deltaTime);
+            _characterController.height = newHeight;
+            _characterController.center = Vector3.up * (newHeight * 0.5f);
+
+            var cameraTargetPosition = cameraTransform.localPosition;
+            cameraTargetPosition.y = _targetHeight - cameraOffset;
+            cameraTransform.localPosition = Vector3.Lerp(
+                    cameraTransform.localPosition,
+                    cameraTargetPosition,
+                    crouchTransitionSpeed * Time.deltaTime
+                    );
+        }
+        else
+        {
+            _characterController.height = _targetHeight;
+        }
+    }
+}
