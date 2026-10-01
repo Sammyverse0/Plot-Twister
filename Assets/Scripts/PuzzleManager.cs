@@ -16,6 +16,8 @@ public class PuzzleManager : MonoBehaviour
     [SerializeField] private GameObject uiPanel;
     [SerializeField] private GridLayoutGroup tileGrid; // on the UI panel's content container
     [SerializeField] private RectTransform tileImagePrefab;
+    [SerializeField] private Sprite straightSprite;
+    [SerializeField] private Sprite elbowSprite;
 
     private readonly List<Plot> _plots = new();
     private readonly List<RectTransform> _tileImages = new();
@@ -41,6 +43,7 @@ public class PuzzleManager : MonoBehaviour
             _plots.Add(plot);
 
             RectTransform tile = Instantiate(tileImagePrefab, tileGrid.transform);
+            tile.GetComponent<Image>().sprite = plot.shape == PipeShape.Straight ? straightSprite : elbowSprite;
             _tileImages.Add(tile);
         }
     }
