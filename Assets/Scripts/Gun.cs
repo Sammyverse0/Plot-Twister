@@ -2,18 +2,20 @@ using UnityEngine;
 using System.Collections;
 using System;
 
+
 public class Gun : MonoBehaviour
 {
     [Header("Gun Settings")]
     [SerializeField] private float reloadTime = 1f;
     [SerializeField] private float fireRate = 0.3f;
-    [SerializeField] private int magSize = 9;
+    [SerializeField] public int magSize = 9;
 
     [Header("References")]
     [SerializeField] private GameObject bullet;
     [SerializeField] private Transform bulletSpawnPoint;
+    
 
-    private int _currentAmmo;
+    public int _currentAmmo;
     private bool _isReloading=false;
     private float _nextTimeToFire = 0f;
 
@@ -27,6 +29,9 @@ public class Gun : MonoBehaviour
         initialRotation = transform.localRotation;
         initialPosition = transform.localPosition;
     }
+
+    
+    
 
     public void Shoot()
     {
