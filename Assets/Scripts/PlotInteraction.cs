@@ -25,10 +25,10 @@ public class PlotInteraction : MonoBehaviour
             return;
         }
 
-        ScreenPuzzleUI screen = hit.collider.GetComponentInParent<ScreenPuzzleUI>();
-        if (screen != null)
+        PuzzleManager puzzle = hit.collider.GetComponentInParent<PuzzleManager>();
+        if (puzzle != null)
         {
-            screen.ToggleUI();
+            puzzle.ToggleUI();
         }
     }
 }
