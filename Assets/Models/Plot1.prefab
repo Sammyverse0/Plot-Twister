@@ -172,6 +172,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Plot
   shape: 1
   rotationState: 0
+  manager: {fileID: 0}
+  worldYawOffset: 0
 --- !u!65 &1259677614736842538
 BoxCollider:
   m_ObjectHideFlags: 0

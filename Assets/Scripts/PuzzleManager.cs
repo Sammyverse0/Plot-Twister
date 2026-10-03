@@ -2,61 +2,306 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Replaces manual per-level wiring: set gridSize per level and this spawns
-// both the world plots and the matching UI tiles, keeping them in sync by index.
+// Direction values go clockwise (North=0 ... West=3) so that
+// "opening + rotationState" matches a clockwise twist.
+// North = UP on the UI = FAR (+z) in the world.
+public enum Direction { North, East, South, West }
+
 public class PuzzleManager : MonoBehaviour
 {
     [Header("Grid")]
-    [SerializeField] private int gridSize = 2; // 2 for level 1, 3 for level 2, etc.
-    [SerializeField] private Vector2 plotSpacing = new Vector2(2f, 2f); // x = gap between columns, y = gap between rows
-    [SerializeField] private Transform plotParent;   // empty object marking the grid's corner
+    [SerializeField] private int gridSize = 3;
+    [SerializeField] private Vector2 plotSpacing = new Vector2(2f, 2f);
+    [SerializeField] private Transform plotParent;
     [SerializeField] private GameObject plotPrefab;
 
     [Header("UI")]
     [SerializeField] private GameObject uiPanel;
-    [SerializeField] private GridLayoutGroup tileGrid; // on the UI panel's content container
+    [SerializeField] private GridLayoutGroup tileGrid;
     [SerializeField] private RectTransform tileImagePrefab;
     [SerializeField] private Sprite straightSprite;
     [SerializeField] private Sprite elbowSprite;
 
+    [Header("Win Condition")]
+    [SerializeField] private Direction entryDirection = Direction.West;
+    [SerializeField] private Direction exitDirection = Direction.East;
+
+    [Header("Aliens")]
+    [SerializeField] private GameObject alienPrefab;
+
+    [SerializeField] private Transform player; // leave empty to auto-find the object tagged "Player"
+
+    [Header("Debug")]
+    [SerializeField] private bool debugLogs = false;
+
     private readonly List<Plot> _plots = new();
     private readonly List<RectTransform> _tileImages = new();
+    private bool _solved;
+
+    // Base openings at rotationState 0, matching the sprite art:
+    // Straight = East/West, Elbow = East/South  (FIX: was North/West)
+    private static readonly int[] StraightBase = { (int)Direction.East, (int)Direction.West };
+    private static readonly int[] ElbowBase = { (int)Direction.East, (int)Direction.South };
 
     private void Start()
     {
+        tileGrid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+        tileGrid.startAxis = GridLayoutGroup.Axis.Horizontal;
+        tileGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         tileGrid.constraintCount = gridSize;
+        tileGrid.childAlignment = TextAnchor.MiddleCenter; // FIX: keep square grid centered
 
-        // Fit the grid into the panel's existing size, however big gridSize is.
+        // FIX: cells MUST be square. A non-square cell rotated 90 degrees
+        // stretches/overflows its neighbours (this is what broke the screenshot).
         RectTransform gridRect = tileGrid.GetComponent<RectTransform>();
         float cellWidth = (gridRect.rect.width - tileGrid.spacing.x * (gridSize - 1)) / gridSize;
         float cellHeight = (gridRect.rect.height - tileGrid.spacing.y * (gridSize - 1)) / gridSize;
-        tileGrid.cellSize = new Vector2(cellWidth, cellHeight);
+        float cell = Mathf.Min(cellWidth, cellHeight);
+        tileGrid.cellSize = new Vector2(cell, cell);
+
+        Dictionary<Vector2Int, (PipeShape shape, int rotation)> solution = GenerateSolvablePath();
+
+        if (debugLogs && solution != null)
+        {
+            foreach (var kvp in solution)
+                Debug.Log($"[Solution] cell {kvp.Key}: shape={kvp.Value.shape}, needs rotationState={kvp.Value.rotation}");
+        }
 
         for (int i = 0; i < gridSize * gridSize; i++)
         {
             int x = i % gridSize;
-            int z = i / gridSize;
+            int row = i / gridSize;           // row 0 = top of UI = far world row
+            int z = gridSize - 1 - row;
+            Vector2Int gridPos = new Vector2Int(x, row);
 
             Vector3 worldPos = plotParent.position + new Vector3(x * plotSpacing.x, 0f, z * plotSpacing.y);
             Plot plot = Instantiate(plotPrefab, worldPos, Quaternion.identity, plotParent).GetComponent<Plot>();
-            plot.shape = (PipeShape)Random.Range(0, 2); // placeholder — replace with designed layouts later
+            plot.manager = this;
+
+            if (solution != null && solution.TryGetValue(gridPos, out var required))
+                plot.shape = required.shape;
+            else
+                plot.shape = (PipeShape)Random.Range(0, 2);
+
+            plot.SetInitialRotation(Random.Range(0, 4));
             _plots.Add(plot);
 
             RectTransform tile = Instantiate(tileImagePrefab, tileGrid.transform);
             tile.GetComponent<Image>().sprite = plot.shape == PipeShape.Straight ? straightSprite : elbowSprite;
             _tileImages.Add(tile);
         }
+
+        // FIX: never start already solved.
+        if (solution != null)
+        {
+            var pathPlots = new List<Plot>();
+            foreach (var pos in solution.Keys) pathPlots.Add(_plots[pos.y * gridSize + pos.x]);
+
+            for (int guard = 0; guard < 50 && CheckSolved(false); guard++)
+            {
+                Plot p = pathPlots[Random.Range(0, pathPlots.Count)];
+                p.SetInitialRotation((p.rotationState + 1) % 4);
+            }
+        }
+
+        SyncTiles();
     }
 
-    public void ToggleUI() => uiPanel.SetActive(!uiPanel.activeSelf);
+    // ---------- Path generation ----------
+
+    private Dictionary<Vector2Int, (PipeShape, int)> GenerateSolvablePath()
+    {
+        Vector2Int exitCell = new Vector2Int(gridSize - 1, gridSize - 1);
+
+        for (int attempt = 0; attempt < 200; attempt++)
+        {
+            var result = TryWalkPath(exitCell);
+            if (result != null) return result;
+        }
+
+        Debug.LogWarning("Couldn't generate a solvable path after 200 attempts.");
+        return null;
+    }
+
+    private Dictionary<Vector2Int, (PipeShape, int)> TryWalkPath(Vector2Int exitCell)
+    {
+        var path = new Dictionary<Vector2Int, (PipeShape, int)>();
+        Vector2Int current = Vector2Int.zero;
+        Direction incoming = entryDirection;
+        HashSet<Vector2Int> visited = new() { current };
+
+        while (true)
+        {
+            if (current == exitCell)
+            {
+                path[current] = GetShapeForOpenings(incoming, exitDirection);
+                return path;
+            }
+
+            List<Direction> options = new()
+            {
+                Opposite(incoming),
+                (Direction)(((int)incoming + 1) % 4),
+                (Direction)(((int)incoming + 3) % 4)
+            };
+
+            for (int i = options.Count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                (options[i], options[j]) = (options[j], options[i]);
+            }
+
+            bool moved = false;
+            foreach (Direction outgoing in options)
+            {
+                Vector2Int next = current + Offset(outgoing);
+                if (next.x < 0 || next.x >= gridSize || next.y < 0 || next.y >= gridSize) continue;
+                if (visited.Contains(next)) continue;
+
+                path[current] = GetShapeForOpenings(incoming, outgoing);
+                visited.Add(next);
+                incoming = Opposite(outgoing);
+                current = next;
+                moved = true;
+                break;
+            }
+
+            if (!moved) return null;
+        }
+    }
+
+    private (PipeShape, int) GetShapeForOpenings(Direction a, Direction b)
+    {
+        foreach (PipeShape shape in new[] { PipeShape.Straight, PipeShape.Elbow })
+        {
+            int[] baseDirs = shape == PipeShape.Straight ? StraightBase : ElbowBase;
+            for (int r = 0; r < 4; r++)
+            {
+                int o1 = (baseDirs[0] + r) % 4;
+                int o2 = (baseDirs[1] + r) % 4;
+                if ((o1 == (int)a && o2 == (int)b) || (o1 == (int)b && o2 == (int)a))
+                    return (shape, r);
+            }
+        }
+        return (PipeShape.Straight, 0);
+    }
+
+    // ---------- UI sync ----------
+
+    public void ToggleUI()
+    {
+        uiPanel.SetActive(!uiPanel.activeSelf);
+        if (uiPanel.activeSelf) SyncTiles();
+    }
 
     private void Update()
     {
-        if (!uiPanel.activeSelf) return;
+        if (uiPanel.activeSelf) SyncTiles();
+    }
 
+    // Plot twists clockwise (+Y yaw, seen from above); UI uses -Z so it also
+    // turns clockwise on screen. Both start from the same base openings.
+    private void SyncTiles()
+    {
         for (int i = 0; i < _plots.Count; i++)
-        {
             _tileImages[i].localRotation = Quaternion.Euler(0f, 0f, -_plots[i].rotationState * 90f);
+    }
+
+    // ---------- Solve check ----------
+
+    public void OnPlotTwisted()
+    {
+        if (_solved) return;
+
+        if (CheckSolved(debugLogs))
+        {
+            _solved = true;
+            Debug.Log("Puzzle solved!");
+            SpawnAliens();
+        }
+    }
+
+    private Direction[] GetOpenings(Plot plot)
+    {
+        int[] baseDirs = plot.shape == PipeShape.Straight ? StraightBase : ElbowBase;
+        return new[]
+        {
+            (Direction)((baseDirs[0] + plot.rotationState) % 4),
+            (Direction)((baseDirs[1] + plot.rotationState) % 4)
+        };
+    }
+
+    private static Direction Opposite(Direction d) => (Direction)(((int)d + 2) % 4);
+
+    // FIX: grid y = UI row (0 = top), so North (up) is y - 1.
+    private static Vector2Int Offset(Direction d) => d switch
+    {
+        Direction.North => new Vector2Int(0, -1),
+        Direction.East => new Vector2Int(1, 0),
+        Direction.South => new Vector2Int(0, 1),
+        Direction.West => new Vector2Int(-1, 0),
+        _ => Vector2Int.zero
+    };
+
+    private bool CheckSolved(bool log)
+    {
+        Vector2Int pos = Vector2Int.zero;
+        Vector2Int exitCell = new Vector2Int(gridSize - 1, gridSize - 1);
+        Direction incoming = entryDirection;
+        HashSet<Vector2Int> visited = new();
+
+        while (true)
+        {
+            if (pos.x < 0 || pos.x >= gridSize || pos.y < 0 || pos.y >= gridSize)
+            {
+                if (log) Debug.Log($"[CheckSolved] FAILED: {pos} out of bounds");
+                return false;
+            }
+            if (!visited.Add(pos))
+            {
+                if (log) Debug.Log($"[CheckSolved] FAILED: loop at {pos}");
+                return false;
+            }
+
+            Plot plot = _plots[pos.y * gridSize + pos.x];
+            Direction[] openings = GetOpenings(plot);
+
+            if (openings[0] != incoming && openings[1] != incoming)
+            {
+                if (log) Debug.Log($"[CheckSolved] FAILED: {pos} ({plot.shape}, rot {plot.rotationState}) doesn't accept {incoming}");
+                return false;
+            }
+
+            Direction outgoing = openings[0] == incoming ? openings[1] : openings[0];
+
+            if (pos == exitCell && outgoing == exitDirection)
+            {
+                if (log) Debug.Log("[CheckSolved] SUCCESS");
+                return true;
+            }
+
+            pos += Offset(outgoing);
+            incoming = Opposite(outgoing);
+        }
+    }
+
+    private void SpawnAliens()
+    {
+        if (player == null)
+        {
+            GameObject found = GameObject.FindGameObjectWithTag("Player");
+            if (found != null) player = found.transform;
+            else Debug.LogWarning("No player assigned and no object tagged 'Player' found — aliens won't follow.");
+        }
+
+        foreach (Plot plot in _plots)
+        {
+            GameObject alien = Instantiate(alienPrefab, plot.transform.position + Vector3.up, Quaternion.identity);
+
+            if (!alien.TryGetComponent(out AlienFollower follower))
+                follower = alien.AddComponent<AlienFollower>();
+
+            follower.SetTarget(player);
         }
     }
 }
