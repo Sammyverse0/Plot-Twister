@@ -322,8 +322,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 303297250}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2.19, y: -0.16, z: 63.84}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.13, y: -0.16, z: 59.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1522,6 +1522,10 @@ MonoBehaviour:
   tileImagePrefab: {fileID: 6234151529809476254, guid: 623b8dd5e9136e3419c6e52ce2b8a29e, type: 3}
   straightSprite: {fileID: 21300000, guid: 4107c8068f2f53c4ca1023b9919836fe, type: 3}
   elbowSprite: {fileID: 21300000, guid: af371313b13378c4d9072659fd31f353, type: 3}
+  entryDirection: 3
+  exitDirection: 1
+  alienPrefab: {fileID: 173435920081290131, guid: 177a138f957b93747ba7f25028e162de, type: 3}
+  debugLogs: 0
 --- !u!1001 &1788412236
 PrefabInstance:
   m_ObjectHideFlags: 0

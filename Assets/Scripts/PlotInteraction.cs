@@ -1,8 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Attach to the Player. Looking at a Plot and pressing Interact twists it.
-// Looking at the Screen object and pressing Interact toggles the puzzle UI.
+
 public class PlotInteraction : MonoBehaviour
 {
     [SerializeField] private Camera cam;
