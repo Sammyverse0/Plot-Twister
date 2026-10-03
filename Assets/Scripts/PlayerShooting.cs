@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
 
 public class PlayerShooting : MonoBehaviour
 {
@@ -7,6 +8,7 @@ public class PlayerShooting : MonoBehaviour
     [SerializeField] private Gun gun;
     [SerializeField] private InputActionReference shootAction;
     [SerializeField] private InputActionReference reloadAction;
+    [SerializeField] private TMP_Text ammoText;
 
     private bool _isHoldingShoot;
 
@@ -41,5 +43,8 @@ public class PlayerShooting : MonoBehaviour
         {
             gun.Shoot();
         }
+
+        ammoText.text = $"{gun._currentAmmo}/{gun.magSize}";
+
     }
 }
