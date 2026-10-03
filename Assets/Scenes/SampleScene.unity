@@ -1525,6 +1525,7 @@ MonoBehaviour:
   entryDirection: 3
   exitDirection: 1
   alienPrefab: {fileID: 173435920081290131, guid: 177a138f957b93747ba7f25028e162de, type: 3}
+  player: {fileID: 0}
   debugLogs: 0
 --- !u!1001 &1788412236
 PrefabInstance:
@@ -1790,7 +1791,7 @@ GameObject:
   - component: {fileID: 2035326335}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

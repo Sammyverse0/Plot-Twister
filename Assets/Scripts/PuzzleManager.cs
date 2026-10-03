@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Direction values go clockwise (North=0 ... West=3) so that
+// "opening + rotationState" matches a clockwise twist.
+// North = UP on the UI = FAR (+z) in the world.
 public enum Direction { North, East, South, West }
 
 public class PuzzleManager : MonoBehaviour
@@ -26,6 +29,8 @@ public class PuzzleManager : MonoBehaviour
     [Header("Aliens")]
     [SerializeField] private GameObject alienPrefab;
 
+    [SerializeField] private Transform player; // leave empty to auto-find the object tagged "Player"
+
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
 
@@ -33,7 +38,8 @@ public class PuzzleManager : MonoBehaviour
     private readonly List<RectTransform> _tileImages = new();
     private bool _solved;
 
- 
+    // Base openings at rotationState 0, matching the sprite art:
+    // Straight = East/West, Elbow = East/South  (FIX: was North/West)
     private static readonly int[] StraightBase = { (int)Direction.East, (int)Direction.West };
     private static readonly int[] ElbowBase = { (int)Direction.East, (int)Direction.South };
 
@@ -43,8 +49,10 @@ public class PuzzleManager : MonoBehaviour
         tileGrid.startAxis = GridLayoutGroup.Axis.Horizontal;
         tileGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         tileGrid.constraintCount = gridSize;
-        tileGrid.childAlignment = TextAnchor.MiddleCenter; 
+        tileGrid.childAlignment = TextAnchor.MiddleCenter; // FIX: keep square grid centered
 
+        // FIX: cells MUST be square. A non-square cell rotated 90 degrees
+        // stretches/overflows its neighbours (this is what broke the screenshot).
         RectTransform gridRect = tileGrid.GetComponent<RectTransform>();
         float cellWidth = (gridRect.rect.width - tileGrid.spacing.x * (gridSize - 1)) / gridSize;
         float cellHeight = (gridRect.rect.height - tileGrid.spacing.y * (gridSize - 1)) / gridSize;
@@ -62,7 +70,7 @@ public class PuzzleManager : MonoBehaviour
         for (int i = 0; i < gridSize * gridSize; i++)
         {
             int x = i % gridSize;
-            int row = i / gridSize;           
+            int row = i / gridSize;           // row 0 = top of UI = far world row
             int z = gridSize - 1 - row;
             Vector2Int gridPos = new Vector2Int(x, row);
 
@@ -83,7 +91,7 @@ public class PuzzleManager : MonoBehaviour
             _tileImages.Add(tile);
         }
 
-        
+        // FIX: never start already solved.
         if (solution != null)
         {
             var pathPlots = new List<Plot>();
@@ -99,7 +107,7 @@ public class PuzzleManager : MonoBehaviour
         SyncTiles();
     }
 
-    
+    // ---------- Path generation ----------
 
     private Dictionary<Vector2Int, (PipeShape, int)> GenerateSolvablePath()
     {
@@ -178,13 +186,10 @@ public class PuzzleManager : MonoBehaviour
         return (PipeShape.Straight, 0);
     }
 
-    
+    // ---------- UI sync ----------
 
     public void ToggleUI()
     {
-        Cursor.lockState = uiPanel.activeSelf ? CursorLockMode.Locked : CursorLockMode.None;
-        Cursor.visible = !uiPanel.activeSelf;
-        Time.timeScale = uiPanel.activeSelf ? 1f : 0f;
         uiPanel.SetActive(!uiPanel.activeSelf);
         if (uiPanel.activeSelf) SyncTiles();
     }
@@ -194,14 +199,15 @@ public class PuzzleManager : MonoBehaviour
         if (uiPanel.activeSelf) SyncTiles();
     }
 
-    
+    // Plot twists clockwise (+Y yaw, seen from above); UI uses -Z so it also
+    // turns clockwise on screen. Both start from the same base openings.
     private void SyncTiles()
     {
         for (int i = 0; i < _plots.Count; i++)
             _tileImages[i].localRotation = Quaternion.Euler(0f, 0f, -_plots[i].rotationState * 90f);
     }
 
-    
+    // ---------- Solve check ----------
 
     public void OnPlotTwisted()
     {
@@ -227,7 +233,7 @@ public class PuzzleManager : MonoBehaviour
 
     private static Direction Opposite(Direction d) => (Direction)(((int)d + 2) % 4);
 
-    
+    // FIX: grid y = UI row (0 = top), so North (up) is y - 1.
     private static Vector2Int Offset(Direction d) => d switch
     {
         Direction.North => new Vector2Int(0, -1),
@@ -281,7 +287,21 @@ public class PuzzleManager : MonoBehaviour
 
     private void SpawnAliens()
     {
+        if (player == null)
+        {
+            GameObject found = GameObject.FindGameObjectWithTag("Player");
+            if (found != null) player = found.transform;
+            else Debug.LogWarning("No player assigned and no object tagged 'Player' found — aliens won't follow.");
+        }
+
         foreach (Plot plot in _plots)
-            Instantiate(alienPrefab, plot.transform.position + Vector3.up, Quaternion.identity);
+        {
+            GameObject alien = Instantiate(alienPrefab, plot.transform.position + Vector3.up, Quaternion.identity);
+
+            if (!alien.TryGetComponent(out AlienFollower follower))
+                follower = alien.AddComponent<AlienFollower>();
+
+            follower.SetTarget(player);
+        }
     }
 }
