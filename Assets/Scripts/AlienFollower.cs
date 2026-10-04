@@ -1,9 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-// Makes an alien chase a target (your character).
-// Uses a NavMeshAgent if the alien has one and is standing on a baked NavMesh;
-// otherwise falls back to moving straight toward the target on the XZ plane.
 public class AlienFollower : MonoBehaviour
 {
     public Transform target;
@@ -37,14 +34,14 @@ public class AlienFollower : MonoBehaviour
     {
         if (target == null) return;
 
-        // NavMesh path
+        
         if (_agent != null && _agent.enabled && _agent.isOnNavMesh)
         {
             _agent.SetDestination(target.position);
             return;
         }
 
-        // Fallback: straight-line chase, flat on the ground plane
+        
         Vector3 toTarget = target.position - transform.position;
         toTarget.y = 0f;
         if (toTarget.magnitude <= stopDistance) return;

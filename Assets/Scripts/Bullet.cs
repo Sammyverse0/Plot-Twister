@@ -17,7 +17,7 @@ public class Bullet : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        // The collider may be on a child of the alien, so search up the hierarchy.
+        
         EnemyHealth enemy = collision.collider.GetComponentInParent<EnemyHealth>();
         if (enemy != null)
             enemy.TakeDamage(damage);
