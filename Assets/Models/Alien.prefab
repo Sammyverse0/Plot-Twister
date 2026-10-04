@@ -50,9 +50,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AlienFollower
   target: {fileID: 0}
-  moveSpeed: 2.5
+  moveSpeed: 5
   stopDistance: 1.5
   turnSpeed: 8
+  separationRadius: 1.2
+  separationWeight: 1.5
 --- !u!136 &4192311816435365743
 CapsuleCollider:
   m_ObjectHideFlags: 0
