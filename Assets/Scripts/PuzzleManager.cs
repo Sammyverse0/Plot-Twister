@@ -226,7 +226,6 @@ public class PuzzleManager : MonoBehaviour
 
     private static Direction Opposite(Direction d) => (Direction)(((int)d + 2) % 4);
 
-    .
     private static Vector2Int Offset(Direction d) => d switch
     {
         Direction.North => new Vector2Int(0, -1),
