@@ -22,7 +22,7 @@ public class Gun : MonoBehaviour
     private Quaternion initialRotation;
     private Vector3 initialPosition;
     private Vector3 reloadRotationOffset = new Vector3(66,50,50); 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    
     private void Start()
     {
         _currentAmmo = magSize;
