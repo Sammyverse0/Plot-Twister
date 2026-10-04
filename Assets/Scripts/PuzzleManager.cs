@@ -2,13 +2,21 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-
 public enum Direction { North, East, South, West }
+
+[System.Serializable]
+public class LevelData
+{
+    public int gridSize = 2;
+    public GameObject[] alienPrefabs;
+}
 
 public class PuzzleManager : MonoBehaviour
 {
+    [Header("Levels")]
+    [SerializeField] private LevelData[] levels;
+
     [Header("Grid")]
-    [SerializeField] private int gridSize = 3;
     [SerializeField] private Vector2 plotSpacing = new Vector2(2f, 2f);
     [SerializeField] private Transform plotParent;
     [SerializeField] private GameObject plotPrefab;
@@ -25,28 +33,43 @@ public class PuzzleManager : MonoBehaviour
     [SerializeField] private Direction exitDirection = Direction.East;
 
     [Header("Aliens")]
-    [SerializeField] private GameObject alienPrefab;
-
     [SerializeField] private Transform player;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
 
+    public event System.Action<int> OnLevelStarted;
+    public event System.Action<int> OnLevelCompleted;
+    public event System.Action OnAllLevelsCompleted;
+
     private readonly List<Plot> _plots = new();
     private readonly List<RectTransform> _tileImages = new();
+    private int gridSize;
+    private int _currentLevel;
+    private int _aliveAliens;
     private bool _solved;
-
 
     private static readonly int[] StraightBase = { (int)Direction.East, (int)Direction.West };
     private static readonly int[] ElbowBase = { (int)Direction.East, (int)Direction.South };
 
     private void Start()
     {
+        BuildLevel(0);
+    }
+
+    public void BuildLevel(int index)
+    {
+        ClearLevel();
+
+        _currentLevel = index;
+        gridSize = levels[index].gridSize;
+
         tileGrid.startCorner = GridLayoutGroup.Corner.UpperLeft;
         tileGrid.startAxis = GridLayoutGroup.Axis.Horizontal;
         tileGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         tileGrid.constraintCount = gridSize;
         tileGrid.childAlignment = TextAnchor.MiddleCenter;
+
         RectTransform gridRect = tileGrid.GetComponent<RectTransform>();
         float cellWidth = (gridRect.rect.width - tileGrid.spacing.x * (gridSize - 1)) / gridSize;
         float cellHeight = (gridRect.rect.height - tileGrid.spacing.y * (gridSize - 1)) / gridSize;
@@ -85,7 +108,6 @@ public class PuzzleManager : MonoBehaviour
             _tileImages.Add(tile);
         }
 
-
         if (solution != null)
         {
             var pathPlots = new List<Plot>();
@@ -99,9 +121,21 @@ public class PuzzleManager : MonoBehaviour
         }
 
         SyncTiles();
+        OnLevelStarted?.Invoke(_currentLevel);
     }
 
+    private void ClearLevel()
+    {
+        foreach (Plot plot in _plots)
+            if (plot != null) Destroy(plot.gameObject);
+        foreach (RectTransform tile in _tileImages)
+            if (tile != null) Destroy(tile.gameObject);
 
+        _plots.Clear();
+        _tileImages.Clear();
+        _aliveAliens = 0;
+        _solved = false;
+    }
 
     private Dictionary<Vector2Int, (PipeShape, int)> GenerateSolvablePath()
     {
@@ -180,8 +214,6 @@ public class PuzzleManager : MonoBehaviour
         return (PipeShape.Straight, 0);
     }
 
-
-
     public void ToggleUI()
     {
         uiPanel.SetActive(!uiPanel.activeSelf);
@@ -193,14 +225,11 @@ public class PuzzleManager : MonoBehaviour
         if (uiPanel.activeSelf) SyncTiles();
     }
 
-
     private void SyncTiles()
     {
         for (int i = 0; i < _plots.Count; i++)
             _tileImages[i].localRotation = Quaternion.Euler(0f, 0f, -_plots[i].rotationState * 90f);
     }
-
-
 
     public void OnPlotTwisted()
     {
@@ -226,7 +255,6 @@ public class PuzzleManager : MonoBehaviour
 
     private static Direction Opposite(Direction d) => (Direction)(((int)d + 2) % 4);
 
-    
     private static Vector2Int Offset(Direction d) => d switch
     {
         Direction.North => new Vector2Int(0, -1),
@@ -287,14 +315,53 @@ public class PuzzleManager : MonoBehaviour
             else Debug.LogWarning("No player assigned and no object tagged 'Player' found — aliens won't follow.");
         }
 
-        foreach (Plot plot in _plots)
+        GameObject[] prefabs = levels[_currentLevel].alienPrefabs;
+
+        if (prefabs != null && prefabs.Length > 0)
         {
-            GameObject alien = Instantiate(alienPrefab, plot.transform.position + Vector3.up, Quaternion.identity);
+            for (int i = 0; i < _plots.Count; i++)
+            {
+                GameObject alien = Instantiate(prefabs[i % prefabs.Length], _plots[i].transform.position + Vector3.up, Quaternion.identity);
 
-            if (!alien.TryGetComponent(out AlienFollower follower))
-                follower = alien.AddComponent<AlienFollower>();
+                if (!alien.TryGetComponent(out AlienFollower follower))
+                    follower = alien.AddComponent<AlienFollower>();
 
-            follower.SetTarget(player);
+                follower.SetTarget(player);
+
+                if (alien.TryGetComponent(out EnemyHealth health))
+                {
+                    _aliveAliens++;
+                    health.OnDeath += HandleAlienDeath;
+                }
+                else
+                {
+                    Debug.LogWarning($"{alien.name} has no EnemyHealth, so it can't be counted for level completion.");
+                }
+            }
         }
+
+        if (_aliveAliens <= 0)
+            CompleteLevel();
+    }
+
+    private void HandleAlienDeath()
+    {
+        _aliveAliens--;
+        if (_aliveAliens <= 0)
+            CompleteLevel();
+    }
+
+    private void CompleteLevel()
+    {
+        OnLevelCompleted?.Invoke(_currentLevel);
+
+        if (_currentLevel + 1 >= levels.Length)
+        {
+            Debug.Log("All levels complete");
+            OnAllLevelsCompleted?.Invoke();
+            return;
+        }
+
+        BuildLevel(_currentLevel + 1);
     }
 }

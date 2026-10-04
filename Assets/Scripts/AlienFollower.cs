@@ -9,18 +9,26 @@ public class AlienFollower : MonoBehaviour
     [SerializeField] private float moveSpeed = 2.5f;
     [SerializeField] private float stopDistance = 1.5f;
     [SerializeField] private float turnSpeed = 8f;
+    [SerializeField] private float standUpDuration = 2f;
 
     [Header("Separation")]
     [SerializeField] private float separationRadius = 1.2f;
     [SerializeField] private float separationWeight = 1.5f;
 
     private static readonly List<AlienFollower> All = new();
+    private static readonly int IsWalkingHash = Animator.StringToHash("IsWalking");
 
     private NavMeshAgent _agent;
+    private Animator _animator;
+    private float _wakeTime;
+
+    public bool IsAwake => Time.time >= _wakeTime;
 
     private void Awake()
     {
         TryGetComponent(out _agent);
+        _animator = GetComponentInChildren<Animator>();
+        _wakeTime = Time.time + standUpDuration;
         ApplyAgentSettings();
     }
 
@@ -43,7 +51,10 @@ public class AlienFollower : MonoBehaviour
 
     private void Update()
     {
-        if (target == null) return;
+        if (target == null || !IsAwake) return;
+
+        if (_animator != null && !_animator.GetBool(IsWalkingHash))
+            _animator.SetBool(IsWalkingHash, true);
 
         if (_agent != null && _agent.enabled && _agent.isOnNavMesh)
         {
