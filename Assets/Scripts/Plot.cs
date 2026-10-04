@@ -5,7 +5,7 @@ public class Plot : MonoBehaviour
 {
     public PipeShape shape;
     [HideInInspector] public int rotationState;
-    [HideInInspector] public PuzzleManager manager; 
+    [HideInInspector] public PuzzleManager manager;
     [SerializeField] private float worldYawOffset = 0f;
 
     public void Twist()
@@ -15,7 +15,7 @@ public class Plot : MonoBehaviour
         manager?.OnPlotTwisted();
     }
 
-    
+
     public void SetInitialRotation(int state)
     {
         rotationState = state;

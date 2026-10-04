@@ -27,7 +27,7 @@ public class PuzzleManager : MonoBehaviour
     [Header("Aliens")]
     [SerializeField] private GameObject alienPrefab;
 
-    [SerializeField] private Transform player; 
+    [SerializeField] private Transform player;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
@@ -36,7 +36,7 @@ public class PuzzleManager : MonoBehaviour
     private readonly List<RectTransform> _tileImages = new();
     private bool _solved;
 
-    
+
     private static readonly int[] StraightBase = { (int)Direction.East, (int)Direction.West };
     private static readonly int[] ElbowBase = { (int)Direction.East, (int)Direction.South };
 
@@ -46,7 +46,7 @@ public class PuzzleManager : MonoBehaviour
         tileGrid.startAxis = GridLayoutGroup.Axis.Horizontal;
         tileGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         tileGrid.constraintCount = gridSize;
-        tileGrid.childAlignment = TextAnchor.MiddleCenter; 
+        tileGrid.childAlignment = TextAnchor.MiddleCenter;
         RectTransform gridRect = tileGrid.GetComponent<RectTransform>();
         float cellWidth = (gridRect.rect.width - tileGrid.spacing.x * (gridSize - 1)) / gridSize;
         float cellHeight = (gridRect.rect.height - tileGrid.spacing.y * (gridSize - 1)) / gridSize;
@@ -64,7 +64,7 @@ public class PuzzleManager : MonoBehaviour
         for (int i = 0; i < gridSize * gridSize; i++)
         {
             int x = i % gridSize;
-            int row = i / gridSize;           
+            int row = i / gridSize;
             int z = gridSize - 1 - row;
             Vector2Int gridPos = new Vector2Int(x, row);
 
@@ -85,7 +85,7 @@ public class PuzzleManager : MonoBehaviour
             _tileImages.Add(tile);
         }
 
-        
+
         if (solution != null)
         {
             var pathPlots = new List<Plot>();
@@ -101,7 +101,7 @@ public class PuzzleManager : MonoBehaviour
         SyncTiles();
     }
 
-    
+
 
     private Dictionary<Vector2Int, (PipeShape, int)> GenerateSolvablePath()
     {
@@ -180,7 +180,7 @@ public class PuzzleManager : MonoBehaviour
         return (PipeShape.Straight, 0);
     }
 
-   
+
 
     public void ToggleUI()
     {
@@ -193,14 +193,14 @@ public class PuzzleManager : MonoBehaviour
         if (uiPanel.activeSelf) SyncTiles();
     }
 
-    
+
     private void SyncTiles()
     {
         for (int i = 0; i < _plots.Count; i++)
             _tileImages[i].localRotation = Quaternion.Euler(0f, 0f, -_plots[i].rotationState * 90f);
     }
 
-    
+
 
     public void OnPlotTwisted()
     {
@@ -226,7 +226,7 @@ public class PuzzleManager : MonoBehaviour
 
     private static Direction Opposite(Direction d) => (Direction)(((int)d + 2) % 4);
 
-    .
+    
     private static Vector2Int Offset(Direction d) => d switch
     {
         Direction.North => new Vector2Int(0, -1),

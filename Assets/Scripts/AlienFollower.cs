@@ -34,14 +34,14 @@ public class AlienFollower : MonoBehaviour
     {
         if (target == null) return;
 
-        
+
         if (_agent != null && _agent.enabled && _agent.isOnNavMesh)
         {
             _agent.SetDestination(target.position);
             return;
         }
 
-        
+
         Vector3 toTarget = target.position - transform.position;
         toTarget.y = 0f;
         if (toTarget.magnitude <= stopDistance) return;

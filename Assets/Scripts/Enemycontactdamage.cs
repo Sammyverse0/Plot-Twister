@@ -31,7 +31,7 @@ public class EnemyContactDamage : MonoBehaviour
         Vector3 myPos = transform.position;
         Vector3 closest = _playerCollider.ClosestPoint(myPos);
 
-        
+
         Vector3 flat = closest - myPos;
         flat.y = 0f;
 

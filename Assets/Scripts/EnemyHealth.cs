@@ -8,13 +8,13 @@ public class EnemyHealth : MonoBehaviour
     [SerializeField] private float maxHealth = 100f;
 
     [Header("Floating Health Bar")]
-    [SerializeField] private Transform healthBarRoot; 
-    [SerializeField] private Image healthBarFill;     
+    [SerializeField] private Transform healthBarRoot;
+    [SerializeField] private Image healthBarFill;
 
     public float CurrentHealth { get; private set; }
     public float MaxHealth => maxHealth;
 
-    public event Action<float, float> OnHealthChanged; 
+    public event Action<float, float> OnHealthChanged;
     public event Action OnDeath;
 
     private bool _dead;
@@ -31,7 +31,7 @@ public class EnemyHealth : MonoBehaviour
         _cam = Camera.main;
     }
 
-   
+
     private void LateUpdate()
     {
         if (healthBarRoot != null && _cam != null)

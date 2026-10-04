@@ -6,12 +6,12 @@ using UnityEngine.UI;
 public class PlayerHealth : MonoBehaviour
 {
     [SerializeField] private float maxHealth = 100f;
-    [SerializeField] private float invulnerableTime = 0.5f; 
+    [SerializeField] private float invulnerableTime = 0.5f;
     [SerializeField] private bool freezeOnDeath = true;
 
     [Header("UI")]
-    [SerializeField] private Image healthBarFill;  
-    [SerializeField] private Image damageFlash;    
+    [SerializeField] private Image healthBarFill;
+    [SerializeField] private Image damageFlash;
     [SerializeField] private float flashAlpha = 0.4f;
     [SerializeField] private float flashFadeSpeed = 1.5f;
 
@@ -19,7 +19,7 @@ public class PlayerHealth : MonoBehaviour
     public float MaxHealth => maxHealth;
     public bool IsDead { get; private set; }
 
-    public event Action<float, float> OnHealthChanged; 
+    public event Action<float, float> OnHealthChanged;
     public event Action OnDeath;
 
     private float _nextDamageTime;
@@ -30,7 +30,7 @@ public class PlayerHealth : MonoBehaviour
         if (healthBarFill != null) healthBarFill.fillAmount = 1f;
         if (damageFlash != null)
         {
-            damageFlash.raycastTarget = false; 
+            damageFlash.raycastTarget = false;
             SetFlashAlpha(0f);
         }
     }
@@ -75,6 +75,6 @@ public class PlayerHealth : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        Time.timeScale = IsDead? 0f:1f;
+        Time.timeScale = IsDead ? 0f : 1f;
     }
 }

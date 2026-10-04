@@ -1055,7 +1055,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.03226484, g: 0.5245282, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1753,7 +1753,7 @@ MonoBehaviour:
   entryDirection: 3
   exitDirection: 1
   alienPrefab: {fileID: 173435920081290131, guid: 177a138f957b93747ba7f25028e162de, type: 3}
-  player: {fileID: 0}
+  player: {fileID: 2035326332}
   debugLogs: 0
 --- !u!1001 &1788412236
 PrefabInstance:
