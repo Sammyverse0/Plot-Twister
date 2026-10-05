@@ -49,6 +49,7 @@ public class FPSMovement : MonoBehaviour
     private float _refillStartTime;
     private bool _tired;
 
+    public bool IsGrounded => _isGrounded;
     public bool IsMoving => _isGrounded && _moveInput.sqrMagnitude > 0.01f;
     public bool IsSprinting { get; private set; }
     public float Stamina => _stamina;

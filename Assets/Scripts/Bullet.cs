@@ -9,9 +9,16 @@ public class Bullet : MonoBehaviour
 
     private Vector3 direction;
 
+    public void Fire(Vector3 newDirection)
+    {
+        direction = newDirection.normalized;
+        transform.rotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0f, 90f, 0f);
+    }
+
     void Start()
     {
-        direction = -transform.right;
+        if (direction == Vector3.zero)
+            direction = -transform.right;
 
         Rigidbody rb = GetComponent<Rigidbody>();
         if (rb != null) rb.isKinematic = true;

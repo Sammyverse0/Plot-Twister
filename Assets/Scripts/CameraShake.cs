@@ -15,11 +15,20 @@ public class CameraShake : CinemachineExtension
 
     [SerializeField] private float blendSpeed = 6f;
 
+    [Header("Recoil")]
+    [SerializeField] private float kickReturnSpeed = 10f;
+
     private FPSMovement player;
     private float timer;
     private float amount;
     private float speed;
     private float tilt;
+    private float kick;
+
+    public void Kick(float degrees)
+    {
+        kick += degrees;
+    }
 
     protected override void Awake()
     {
@@ -29,6 +38,8 @@ public class CameraShake : CinemachineExtension
 
     private void Update()
     {
+        kick = Mathf.Lerp(kick, 0f, kickReturnSpeed * Time.deltaTime);
+
         if (player == null) return;
 
         float targetAmount = 0f;
@@ -60,6 +71,6 @@ public class CameraShake : CinemachineExtension
         float roll = Mathf.Cos(timer * 0.5f) * tilt;
 
         state.PositionCorrection += state.RawOrientation * new Vector3(side, up, 0f);
-        state.OrientationCorrection *= Quaternion.Euler(0f, 0f, roll);
+        state.OrientationCorrection *= Quaternion.Euler(-kick, 0f, roll);
     }
 }
