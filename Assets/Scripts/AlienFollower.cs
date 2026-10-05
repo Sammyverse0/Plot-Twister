@@ -7,9 +7,12 @@ public class AlienFollower : MonoBehaviour
     public Transform target;
 
     [SerializeField] private float moveSpeed = 2.5f;
+    [SerializeField] private float crawlSpeed = 0.8f;
     [SerializeField] private float stopDistance = 1.5f;
     [SerializeField] private float turnSpeed = 8f;
     [SerializeField] private float standUpDuration = 2f;
+    [SerializeField] private string riseStateName = "Stand up";
+    [SerializeField] private float hitStunTime = 0.4f;
 
     [Header("Separation")]
     [SerializeField] private float separationRadius = 1.2f;
@@ -17,12 +20,21 @@ public class AlienFollower : MonoBehaviour
 
     private static readonly List<AlienFollower> All = new();
     private static readonly int IsWalkingHash = Animator.StringToHash("IsWalking");
+    private static readonly int IsCrawlingHash = Animator.StringToHash("IsCrawling");
+    private static readonly int HitHash = Animator.StringToHash("Hit");
+    private static readonly int DieHash = Animator.StringToHash("Die");
 
     private NavMeshAgent _agent;
     private Animator _animator;
     private float _wakeTime;
+    private bool _isRising = true;
+    private float _stunnedUntil;
+    private bool _isCrawling;
+    private bool _isDead;
 
-    public bool IsAwake => Time.time >= _wakeTime;
+    public bool IsAwake => !_isDead && !_isRising;
+    public bool IsDead => _isDead;
+    public bool IsCrawling => _isCrawling;
 
     private void Awake()
     {
@@ -42,16 +54,73 @@ public class AlienFollower : MonoBehaviour
         ApplyAgentSettings();
     }
 
+    private float CurrentSpeed => _isCrawling ? crawlSpeed : moveSpeed;
+
     private void ApplyAgentSettings()
     {
         if (_agent == null) return;
-        _agent.speed = moveSpeed;
+        _agent.speed = CurrentSpeed;
         _agent.stoppingDistance = stopDistance;
+    }
+
+    public void StartCrawling()
+    {
+        if (_isCrawling || !IsAwake) return;
+
+        _isCrawling = true;
+        if (_animator != null) _animator.SetBool(IsCrawlingHash, true);
+        ApplyAgentSettings();
+    }
+
+    public void GetHit()
+    {
+        if (!IsAwake || _isCrawling) return;
+
+        if (_animator != null) _animator.SetTrigger(HitHash);
+        _stunnedUntil = Time.time + hitStunTime;
+    }
+
+    public void Die()
+    {
+        _isDead = true;
+
+        if (_animator != null)
+        {
+            _animator.SetBool(IsCrawlingHash, false);
+            _animator.SetTrigger(DieHash);
+        }
+
+        if (_agent != null) _agent.enabled = false;
+    }
+
+    private void CheckRising()
+    {
+        if (_animator == null)
+        {
+            _isRising = Time.time < _wakeTime;
+            return;
+        }
+
+        if (_animator.IsInTransition(0)) return;
+
+        AnimatorStateInfo state = _animator.GetCurrentAnimatorStateInfo(0);
+        if (!state.IsName(riseStateName) || state.normalizedTime >= 1f)
+            _isRising = false;
     }
 
     private void Update()
     {
+        if (_isRising) CheckRising();
         if (target == null || !IsAwake) return;
+
+        bool stunned = Time.time < _stunnedUntil;
+
+        if (_agent != null && _agent.enabled && _agent.isOnNavMesh)
+        {
+            _agent.isStopped = stunned;
+        }
+
+        if (stunned) return;
 
         if (_animator != null && !_animator.GetBool(IsWalkingHash))
             _animator.SetBool(IsWalkingHash, true);
@@ -73,7 +142,7 @@ public class AlienFollower : MonoBehaviour
         if (move.sqrMagnitude > 1f)
             move.Normalize();
 
-        transform.position += move * (moveSpeed * Time.deltaTime);
+        transform.position += move * (CurrentSpeed * Time.deltaTime);
 
         if (toTarget.sqrMagnitude > 0.0001f)
         {
@@ -90,7 +159,7 @@ public class AlienFollower : MonoBehaviour
 
         foreach (AlienFollower other in All)
         {
-            if (other == this) continue;
+            if (other == this || other._isDead) continue;
 
             Vector3 offset = transform.position - other.transform.position;
             offset.y = 0f;
