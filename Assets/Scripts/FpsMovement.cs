@@ -2,6 +2,8 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+using UnityEngine.UI;
 
 public class FPSMovement : MonoBehaviour
 {
@@ -21,6 +23,13 @@ public class FPSMovement : MonoBehaviour
     [SerializeField] private float crouchTransitionSpeed = 10f;
     [SerializeField] private float cameraOffset = 0.4f;
 
+    [Header("Stamina")]
+    [SerializeField] private float sprintTime = 4.5f;
+    [SerializeField] private float refillTime = 9f;
+    [SerializeField] private float refillDelay = 1f;
+    [SerializeField] private float minStaminaToRun = 0.25f;
+    [SerializeField] private Image staminaFill;
+
     [Header("References")]
     [SerializeField] private InputActionReference moveAction;
     [SerializeField] private InputActionReference jumpAction;
@@ -36,6 +45,14 @@ public class FPSMovement : MonoBehaviour
     private bool _isRunning;
     private bool _isCrouching;
     private float _targetHeight;
+    private float _stamina = 1f;
+    private float _refillStartTime;
+    private bool _tired;
+
+    public bool IsGrounded => _isGrounded;
+    public bool IsMoving => _isGrounded && _moveInput.sqrMagnitude > 0.01f;
+    public bool IsSprinting { get; private set; }
+    public float Stamina => _stamina;
 
     private void Awake()
     {
@@ -74,6 +91,7 @@ public class FPSMovement : MonoBehaviour
         _isGrounded = _characterController.isGrounded;
 
         HandleGravity();
+        HandleStamina();
         HandleMovement();
         HandleCrouchTransition();
 
@@ -137,10 +155,39 @@ public class FPSMovement : MonoBehaviour
         _verticleVelocity += gravity * Time.deltaTime;
     }
 
+    private void HandleStamina()
+    {
+        IsSprinting = _isRunning && !_isCrouching && !_tired && _moveInput.sqrMagnitude > 0.01f;
+
+        if (IsSprinting)
+        {
+            _stamina -= Time.deltaTime / sprintTime;
+            _refillStartTime = Time.time + refillDelay;
+
+            if (_stamina <= 0f)
+            {
+                _stamina = 0f;
+                _tired = true;
+            }
+        }
+        else if (Time.time >= _refillStartTime)
+        {
+            _stamina = Mathf.Min(1f, _stamina + Time.deltaTime / refillTime);
+        }
+
+        if (_tired && _stamina >= minStaminaToRun)
+            _tired = false;
+
+        if (staminaFill != null)
+            staminaFill.fillAmount = _stamina;
+    }
+
     private void HandleMovement()
     {
-        var move = cameraTransform.TransformDirection(new Vector3(_moveInput.x, 0, _moveInput.y)).normalized;
-        var currentSpeed = _isCrouching ? crouchSpeed : _isRunning ? runSpeed : walkSpeed;
+        var move = cameraTransform.TransformDirection(new Vector3(_moveInput.x, 0, _moveInput.y));
+        move.y = 0f;
+        move.Normalize();
+        var currentSpeed = _isCrouching ? crouchSpeed : IsSprinting ? runSpeed : walkSpeed;
         var finalMove = move * currentSpeed;
         finalMove.y = _verticleVelocity;
 

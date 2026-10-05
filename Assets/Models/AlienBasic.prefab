@@ -51,11 +51,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AlienFollower
   target: {fileID: 0}
-  moveSpeed: 3
-  crawlSpeed: 0.8
+  moveSpeed: 6
+  crawlSpeed: 2
   stopDistance: 1.5
   turnSpeed: 8
-  standUpDuration: 2
+  standUpDuration: 1.5
+  riseStateName: Stand up
   hitStunTime: 0.4
   separationRadius: 1.2
   separationWeight: 1.5
@@ -95,6 +96,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
   maxHealth: 100
+  headshotKills: 1
   headshotMultiplier: 2
   bodyMultiplier: 1
   legMultiplier: 1
@@ -577,8 +579,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.54146105
-  m_Center: {x: -0.08099663, y: 0.54370636, z: 0.17875566}
+  m_Radius: 0.5308627
+  m_Center: {x: -0.08099669, y: 0.54371405, z: 0.528619}
 --- !u!114 &2959484501847325835
 MonoBehaviour:
   m_ObjectHideFlags: 0
