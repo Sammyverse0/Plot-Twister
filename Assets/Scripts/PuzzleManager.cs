@@ -308,6 +308,8 @@ public class PuzzleManager : MonoBehaviour
 
     private void SpawnAliens()
     {
+        uiPanel.SetActive(false);
+
         if (player == null)
         {
             GameObject found = GameObject.FindGameObjectWithTag("Player");

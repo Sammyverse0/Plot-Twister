@@ -17,10 +17,17 @@ public class Bullet : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-
-        EnemyHealth enemy = collision.collider.GetComponentInParent<EnemyHealth>();
-        if (enemy != null)
-            enemy.TakeDamage(damage);
+        HitZone zone = collision.collider.GetComponent<HitZone>();
+        if (zone != null)
+        {
+            zone.Hit(damage);
+        }
+        else
+        {
+            EnemyHealth enemy = collision.collider.GetComponentInParent<EnemyHealth>();
+            if (enemy != null)
+                enemy.TakeDamage(damage);
+        }
 
         Destroy(gameObject);
     }

@@ -1310,7 +1310,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4123526144081087399}
   - component: {fileID: 5393650711775195985}
-  - component: {fileID: 2954639559854734322}
   m_Layer: 0
   m_Name: Farmer_gunhold
   m_TagString: Untagged
@@ -1357,29 +1356,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!136 &2954639559854734322
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6729792778126291903}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 3
-  m_Direction: 1
-  m_Center: {x: 0, y: 1.15, z: 0}
 --- !u!1 &6769884132134213040
 GameObject:
   m_ObjectHideFlags: 0
