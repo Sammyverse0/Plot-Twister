@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-
 public class PlayerHealth : MonoBehaviour
 {
     [SerializeField] private float maxHealth = 100f;
@@ -38,7 +37,7 @@ public class PlayerHealth : MonoBehaviour
     private void Update()
     {
         if (damageFlash != null && damageFlash.color.a > 0f)
-            SetFlashAlpha(Mathf.MoveTowards(damageFlash.color.a, 0f, flashFadeSpeed * Time.deltaTime));
+            SetFlashAlpha(Mathf.MoveTowards(damageFlash.color.a, 0f, flashFadeSpeed * Time.unscaledDeltaTime));
     }
 
     public void TakeDamage(float amount)
@@ -57,6 +56,18 @@ public class PlayerHealth : MonoBehaviour
             Die();
     }
 
+    public void ResetHealth()
+    {
+        IsDead = false;
+        CurrentHealth = maxHealth;
+        _nextDamageTime = 0f;
+        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+
+        if (healthBarFill != null) healthBarFill.fillAmount = 1f;
+        if (damageFlash != null) SetFlashAlpha(0f);
+        if (TryGetComponent(out FPSMovement movement)) movement.enabled = true;
+    }
+
     private void SetFlashAlpha(float a)
     {
         Color c = damageFlash.color;
@@ -68,13 +79,13 @@ public class PlayerHealth : MonoBehaviour
     {
         IsDead = true;
         Debug.Log("Player died");
-        OnDeath?.Invoke();
 
         if (freezeOnDeath && TryGetComponent(out FPSMovement movement))
             movement.enabled = false;
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        Time.timeScale = IsDead ? 0f : 1f;
+
+        OnDeath?.Invoke();
     }
 }

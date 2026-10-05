@@ -46,22 +46,50 @@ public class PuzzleManager : MonoBehaviour
 
     private readonly List<Plot> _plots = new();
     private readonly List<RectTransform> _tileImages = new();
+    private readonly List<GameObject> _aliens = new();
     private int gridSize;
     private int _currentLevel;
     private int _aliveAliens;
     private bool _solved;
+
+    private PlayerHealth _playerHealth;
+    private CharacterController _playerController;
+    private Vector3 _startPosition;
+    private Quaternion _startRotation;
 
     private static readonly int[] StraightBase = { (int)Direction.East, (int)Direction.West };
     private static readonly int[] ElbowBase = { (int)Direction.East, (int)Direction.South };
 
     private void Start()
     {
+        ResolvePlayer();
+
+        if (player != null)
+        {
+            _startPosition = player.position;
+            _startRotation = player.rotation;
+            player.TryGetComponent(out _playerController);
+            player.TryGetComponent(out _playerHealth);
+        }
+
         BuildLevel(0);
+    }
+
+    public bool HasNextLevel => _currentLevel + 1 < levels.Length;
+
+    private void ResolvePlayer()
+    {
+        if (player != null) return;
+
+        GameObject found = GameObject.FindGameObjectWithTag("Player");
+        if (found != null) player = found.transform;
+        else Debug.LogWarning("No player assigned and no object tagged 'Player' found.");
     }
 
     public void BuildLevel(int index)
     {
         ClearLevel();
+        ResetPlayer();
 
         _currentLevel = index;
         gridSize = levels[index].gridSize;
@@ -132,11 +160,23 @@ public class PuzzleManager : MonoBehaviour
             if (plot != null) Destroy(plot.gameObject);
         foreach (RectTransform tile in _tileImages)
             if (tile != null) Destroy(tile.gameObject);
+        foreach (GameObject alien in _aliens)
+            if (alien != null) Destroy(alien);
 
         _plots.Clear();
         _tileImages.Clear();
+        _aliens.Clear();
         _aliveAliens = 0;
         _solved = false;
+    }
+
+    private void ResetPlayer()
+    {
+        if (player == null) return;
+
+        if (_playerController != null) _playerController.enabled = false;
+        player.SetPositionAndRotation(_startPosition, _startRotation);
+        if (_playerController != null) _playerController.enabled = true;
     }
 
     private Dictionary<Vector2Int, (PipeShape, int)> GenerateSolvablePath()
@@ -312,13 +352,6 @@ public class PuzzleManager : MonoBehaviour
     {
         uiPanel.SetActive(false);
 
-        if (player == null)
-        {
-            GameObject found = GameObject.FindGameObjectWithTag("Player");
-            if (found != null) player = found.transform;
-            else Debug.LogWarning("No player assigned and no object tagged 'Player' found — aliens won't follow.");
-        }
-
         GameObject[] prefabs = levels[_currentLevel].alienPrefabs;
 
         if (prefabs != null && prefabs.Length > 0)
@@ -326,6 +359,7 @@ public class PuzzleManager : MonoBehaviour
             for (int i = 0; i < _plots.Count; i++)
             {
                 GameObject alien = Instantiate(prefabs[i % prefabs.Length], _plots[i].transform.position + Vector3.up, Quaternion.identity);
+                _aliens.Add(alien);
 
                 if (!alien.TryGetComponent(out AlienFollower follower))
                     follower = alien.AddComponent<AlienFollower>();
@@ -377,15 +411,27 @@ public class PuzzleManager : MonoBehaviour
 
     private void CompleteLevel()
     {
+        if (_playerHealth != null && _playerHealth.IsDead) return;
+
         OnLevelCompleted?.Invoke(_currentLevel);
 
-        if (_currentLevel + 1 >= levels.Length)
+        if (!HasNextLevel)
         {
             Debug.Log("All levels complete");
             OnAllLevelsCompleted?.Invoke();
-            return;
         }
+    }
+
+    public void NextLevel()
+    {
+        if (!HasNextLevel) return;
 
         BuildLevel(_currentLevel + 1);
+    }
+
+    public void RestartLevel()
+    {
+        if (_playerHealth != null) _playerHealth.ResetHealth();
+        BuildLevel(_currentLevel);
     }
 }
