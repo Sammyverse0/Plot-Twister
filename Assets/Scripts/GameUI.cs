@@ -1,12 +1,19 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class GameUI : MonoBehaviour
 {
     [SerializeField] private PuzzleManager puzzleManager;
     [SerializeField] private PlayerHealth playerHealth;
+
+    [Header("Panels")]
+    [SerializeField] private GameObject pausePanel;
     [SerializeField] private GameObject restartPanel;
     [SerializeField] private GameObject levelCompletePanel;
     [SerializeField] private GameObject nextLevelButton;
+
+    [Header("Input")]
+    [SerializeField] private InputActionReference pauseAction;
 
     private void Awake()
     {
@@ -17,16 +24,57 @@ public class GameUI : MonoBehaviour
     private void OnEnable()
     {
         puzzleManager.OnLevelCompleted += ShowLevelComplete;
-        if (playerHealth != null) playerHealth.OnDeath += ShowRestart;
+
+        if (playerHealth != null)
+            playerHealth.OnDeath += ShowRestart;
+
+        if (pauseAction != null)
+        {
+            pauseAction.action.Enable();
+            pauseAction.action.performed += OnPausePerformed;
+        }
     }
 
     private void OnDisable()
     {
         puzzleManager.OnLevelCompleted -= ShowLevelComplete;
-        if (playerHealth != null) playerHealth.OnDeath -= ShowRestart;
+
+        if (playerHealth != null)
+            playerHealth.OnDeath -= ShowRestart;
+
+        if (pauseAction != null)
+        {
+            pauseAction.action.performed -= OnPausePerformed;
+            pauseAction.action.Disable();
+        }
     }
 
     private void Start()
+    {
+        HidePanels();
+    }
+
+    private void OnPausePerformed(InputAction.CallbackContext context)
+    {
+        TogglePause();
+    }
+
+    private void TogglePause()
+    {
+        // Don't open pause menu over these panels
+        if (restartPanel != null && restartPanel.activeSelf)
+            return;
+
+        if (levelCompletePanel != null && levelCompletePanel.activeSelf)
+            return;
+
+        if (pausePanel != null && pausePanel.activeSelf)
+            HidePanels();
+        else
+            ShowPanel(pausePanel);
+    }
+
+    public void OnResumeClicked()
     {
         HidePanels();
     }
@@ -45,7 +93,9 @@ public class GameUI : MonoBehaviour
 
     private void ShowLevelComplete(int level)
     {
-        if (nextLevelButton != null) nextLevelButton.SetActive(puzzleManager.HasNextLevel);
+        if (nextLevelButton != null)
+            nextLevelButton.SetActive(puzzleManager.HasNextLevel);
+
         ShowPanel(levelCompletePanel);
     }
 
@@ -56,7 +106,9 @@ public class GameUI : MonoBehaviour
 
     private void ShowPanel(GameObject panel)
     {
-        if (panel != null) panel.SetActive(true);
+        if (panel != null)
+            panel.SetActive(true);
+
         Time.timeScale = 0f;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -64,8 +116,15 @@ public class GameUI : MonoBehaviour
 
     private void HidePanels()
     {
-        if (restartPanel != null) restartPanel.SetActive(false);
-        if (levelCompletePanel != null) levelCompletePanel.SetActive(false);
+        if (pausePanel != null)
+            pausePanel.SetActive(false);
+
+        if (restartPanel != null)
+            restartPanel.SetActive(false);
+
+        if (levelCompletePanel != null)
+            levelCompletePanel.SetActive(false);
+
         Time.timeScale = 1f;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;

@@ -210,7 +210,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossController
   bossName: BOB
   target: {fileID: 0}
-  moveSpeed: 6
+  moveSpeed: 5
   turnSpeed: 5
   stopDistance: 3
   introTime: 3

@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -12,6 +13,9 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private GameObject newGameButton;
     [SerializeField] private VideoPlayer cutscenePlayer;
     [SerializeField] private string gameSceneName = "SampleScene";
+
+    [Header("Main Menu Music")]
+    [SerializeField] private AudioSource musicSource;
 
     private bool _cutscenePlaying;
     private float _cutsceneStartTime;
@@ -31,32 +35,51 @@ public class MainMenu : MonoBehaviour
             cutscenePlayer.loopPointReached += _ => FinishCutscene();
         }
 
+        // Start menu music
+        if (musicSource != null)
+        {
+            musicSource.loop = true;
+            musicSource.Play();
+        }
+
         ShowMain();
     }
 
     private void Update()
     {
-        if (!_cutscenePlaying || Time.time - _cutsceneStartTime < 0.5f) return;
+        if (!_cutscenePlaying || Time.time - _cutsceneStartTime < 0.5f)
+            return;
 
-        bool pressed = (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame)
+        bool pressed =
+            (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame)
             || (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame);
 
-        if (pressed) FinishCutscene();
+        if (pressed)
+            FinishCutscene();
     }
 
     public void StartGame()
     {
-        bool seen = PlayerPrefs.GetInt(CutsceneSeenKey, 0) == 1
+        bool seen =
+            PlayerPrefs.GetInt(CutsceneSeenKey, 0) == 1
             || PlayerPrefs.GetInt(PuzzleManager.SaveKey, 0) > 0;
 
-        if (seen) SceneManager.LoadScene(gameSceneName);
-        else PlayCutscene();
+        if (seen)
+        {
+            StopMusic();
+            SceneManager.LoadScene(gameSceneName);
+        }
+        else
+        {
+            PlayCutscene();
+        }
     }
 
     public void NewGame()
     {
         PlayerPrefs.DeleteKey(PuzzleManager.SaveKey);
         PlayerPrefs.DeleteKey(CutsceneSeenKey);
+
         PlayCutscene();
     }
 
@@ -72,17 +95,34 @@ public class MainMenu : MonoBehaviour
         settingsPanel.SetActive(false);
         Cursor.visible = false;
 
+        // Stop menu music while cutscene plays
+        StopMusic();
+
         _cutscenePlaying = true;
         _cutsceneStartTime = Time.time;
+
         cutscenePlayer.Play();
     }
 
     private void FinishCutscene()
     {
+        if (!_cutscenePlaying)
+            return;
+
         _cutscenePlaying = false;
+
         PlayerPrefs.SetInt(CutsceneSeenKey, 1);
         PlayerPrefs.Save();
+
+        StopMusic();
+
         SceneManager.LoadScene(gameSceneName);
+    }
+
+    private void StopMusic()
+    {
+        if (musicSource != null && musicSource.isPlaying)
+            musicSource.Stop();
     }
 
     public void OpenSettings()

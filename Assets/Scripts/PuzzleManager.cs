@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-
+using UnityEngine.Video;
 public enum Direction { North, East, South, West }
 
 [System.Serializable]
@@ -17,7 +17,15 @@ public class LevelData
 
 public class PuzzleManager : MonoBehaviour
 {
+    [Header("Level 1 Intro Panel")]
+    [SerializeField] private GameObject level1IntroPanel;
     public const string SaveKey = "SavedLevel";
+    [Header("Ending Cutscene")]
+    [SerializeField] private VideoPlayer endingCutscenePlayer;
+    [SerializeField] private GameObject endingCutscenePanel;
+    [Header("Combat Music")]
+    [SerializeField] private AudioSource combatMusicSource;
+    [SerializeField] private AudioClip combatMusic;
     [Header("Levels")]
     [SerializeField] private LevelData[] levels;
 
@@ -78,7 +86,22 @@ public class PuzzleManager : MonoBehaviour
             player.TryGetComponent(out _playerHealth);
         }
 
+        if (endingCutscenePanel != null)
+            endingCutscenePanel.SetActive(false);
         BuildLevel(Mathf.Clamp(PlayerPrefs.GetInt(SaveKey, 0), 0, levels.Length - 1));
+
+        if (level1IntroPanel != null && _currentLevel == 0)
+        {
+            level1IntroPanel.SetActive(true);
+
+            Time.timeScale = 0f;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+        else if (level1IntroPanel != null)
+        {
+            level1IntroPanel.SetActive(false);
+        }
     }
 
     public bool HasNextLevel => _currentLevel + 1 < levels.Length;
@@ -373,24 +396,38 @@ public class PuzzleManager : MonoBehaviour
 
     private void SpawnAliens()
     {
+        PlayCombatMusic();
         uiPanel.SetActive(false);
 
         LevelData level = levels[_currentLevel];
 
+        // Spawn boss if this level has one
         if (level.bossPrefab != null)
         {
             SpawnBoss(level);
-            return;
         }
 
+        // Spawn normal aliens as well
         GameObject[] prefabs = level.alienPrefabs;
 
         if (prefabs != null && prefabs.Length > 0)
         {
             for (int i = 0; i < _plots.Count; i++)
-                SpawnEnemy(prefabs[i % prefabs.Length], _plots[i].transform.position + Vector3.up);
+            {
+                if (_aliveAliens >= maxAliveEnemies)
+                    break;
+
+                SpawnEnemy(
+                    prefabs[i % prefabs.Length],
+                    _plots[i].transform.position + Vector3.up
+                );
+            }
         }
 
+        // Start combat music
+        PlayCombatMusic();
+
+        // Start reinforcement timer
         _nextReinforcement = Time.time + level.reinforcementInterval;
 
         if (_aliveAliens <= 0)
@@ -486,7 +523,10 @@ public class PuzzleManager : MonoBehaviour
 
     private void CompleteLevel()
     {
-        if (_playerHealth != null && _playerHealth.IsDead) return;
+        if (_playerHealth != null && _playerHealth.IsDead)
+            return;
+
+        StopCombatMusic();
 
         OnLevelCompleted?.Invoke(_currentLevel);
 
@@ -494,6 +534,9 @@ public class PuzzleManager : MonoBehaviour
         {
             PlayerPrefs.DeleteKey(SaveKey);
             Debug.Log("All levels complete");
+
+            PlayEndingCutscene();
+
             OnAllLevelsCompleted?.Invoke();
         }
     }
@@ -509,5 +552,64 @@ public class PuzzleManager : MonoBehaviour
     {
         if (_playerHealth != null) _playerHealth.ResetHealth();
         BuildLevel(_currentLevel);
+    }
+
+    private void PlayCombatMusic()
+    {
+        if (combatMusicSource == null || combatMusic == null)
+            return;
+
+        if (combatMusicSource.clip != combatMusic)
+            combatMusicSource.clip = combatMusic;
+
+        if (!combatMusicSource.isPlaying)
+            combatMusicSource.Play();
+    }
+
+    private void StopCombatMusic()
+    {
+        if (combatMusicSource != null && combatMusicSource.isPlaying)
+            combatMusicSource.Stop();
+    }
+    private void PlayEndingCutscene()
+    {
+        if (endingCutscenePlayer == null)
+        {
+            Debug.LogWarning("Ending cutscene VideoPlayer is not assigned.");
+            return;
+        }
+
+        Time.timeScale = 1f;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = false;
+
+        if (endingCutscenePanel != null)
+            endingCutscenePanel.SetActive(true);
+
+        endingCutscenePlayer.Stop();
+        endingCutscenePlayer.Play();
+    }
+
+    public void CloseLevel1Intro()
+    {
+        if (level1IntroPanel != null)
+            level1IntroPanel.SetActive(false);
+
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    public void OpenLevel1Intro()
+    {
+        if (level1IntroPanel != null)
+        {
+            level1IntroPanel.SetActive(true);
+
+            Time.timeScale = 0f;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
     }
 }

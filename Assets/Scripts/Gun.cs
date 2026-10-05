@@ -27,6 +27,9 @@ public class Gun : MonoBehaviour
     [SerializeField] private GameObject bullet;
     [SerializeField] private Transform bulletSpawnPoint;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource gunshotSource;
+    [SerializeField] private AudioClip gunshotClip;
 
     public int _currentAmmo;
     private bool _isReloading = false;
@@ -106,8 +109,12 @@ public class Gun : MonoBehaviour
         if (newBullet.TryGetComponent(out Bullet shot))
             shot.Fire(GetShotDirection());
 
+
         _currentAmmo--;
         _recoil = 1f;
+
+        if (gunshotSource != null && gunshotClip != null)
+            gunshotSource.PlayOneShot(gunshotClip);
 
         if (_cameraShake != null)
             _cameraShake.Kick(cameraKick);
