@@ -30,6 +30,9 @@ public class FPSMovement : MonoBehaviour
     [SerializeField] private float minStaminaToRun = 0.25f;
     [SerializeField] private Image staminaFill;
 
+    [Header("Knockback")]
+    [SerializeField] private float pushDrag = 4f;
+
     [Header("References")]
     [SerializeField] private InputActionReference moveAction;
     [SerializeField] private InputActionReference jumpAction;
@@ -48,6 +51,7 @@ public class FPSMovement : MonoBehaviour
     private float _stamina = 1f;
     private float _refillStartTime;
     private bool _tired;
+    private Vector3 _pushVelocity;
 
     public bool IsGrounded => _isGrounded;
     public bool IsMoving => _isGrounded && _moveInput.sqrMagnitude > 0.01f;
@@ -95,6 +99,17 @@ public class FPSMovement : MonoBehaviour
         HandleMovement();
         HandleCrouchTransition();
 
+    }
+
+    public void Knockback(Vector3 force)
+    {
+        _pushVelocity += new Vector3(force.x, 0f, force.z);
+
+        if (force.y > 0f)
+        {
+            _verticleVelocity = force.y;
+            _isGrounded = false;
+        }
     }
 
     private void StoreMovementInput(InputAction.CallbackContext context)
@@ -188,8 +203,9 @@ public class FPSMovement : MonoBehaviour
         move.y = 0f;
         move.Normalize();
         var currentSpeed = _isCrouching ? crouchSpeed : IsSprinting ? runSpeed : walkSpeed;
-        var finalMove = move * currentSpeed;
+        var finalMove = move * currentSpeed + _pushVelocity;
         finalMove.y = _verticleVelocity;
+        _pushVelocity = Vector3.Lerp(_pushVelocity, Vector3.zero, pushDrag * Time.deltaTime);
 
         CollisionFlags collisions = _characterController.Move(finalMove * Time.deltaTime);
 

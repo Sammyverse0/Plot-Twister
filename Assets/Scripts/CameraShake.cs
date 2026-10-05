@@ -24,10 +24,26 @@ public class CameraShake : CinemachineExtension
     private float speed;
     private float tilt;
     private float kick;
+    private float shakeAmount;
+    private float shakeEndTime;
+    private float shakeLength;
 
     public void Kick(float degrees)
     {
         kick += degrees;
+    }
+
+    public void Shake(float amount, float time)
+    {
+        shakeAmount = Mathf.Max(amount, CurrentShake());
+        shakeLength = time;
+        shakeEndTime = Time.time + time;
+    }
+
+    private float CurrentShake()
+    {
+        if (Time.time >= shakeEndTime || shakeLength <= 0f) return 0f;
+        return shakeAmount * ((shakeEndTime - Time.time) / shakeLength);
     }
 
     protected override void Awake()
@@ -71,6 +87,10 @@ public class CameraShake : CinemachineExtension
         float roll = Mathf.Cos(timer * 0.5f) * tilt;
 
         state.PositionCorrection += state.RawOrientation * new Vector3(side, up, 0f);
-        state.OrientationCorrection *= Quaternion.Euler(-kick, 0f, roll);
+        float shake = CurrentShake();
+        Vector3 jolt = Random.insideUnitSphere * shake;
+
+        state.PositionCorrection += jolt * 0.1f;
+        state.OrientationCorrection *= Quaternion.Euler(-kick + jolt.x, jolt.y, roll + jolt.z);
     }
 }

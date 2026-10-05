@@ -52,21 +52,28 @@ public class Bullet : MonoBehaviour
             if (col.GetComponentInParent<CharacterController>() != null) continue;
 
             HitZone zone = col.GetComponent<HitZone>();
-            if (zone != null)
-            {
-                zone.Hit(damage);
-                return true;
-            }
-
-            if (col.isTrigger) continue;
+            if (zone == null && col.isTrigger) continue;
 
             EnemyHealth enemy = col.GetComponentInParent<EnemyHealth>();
             if (enemy != null)
+                SpawnHitEffect(enemy, hit);
+
+            if (zone != null)
+                zone.Hit(damage);
+            else if (enemy != null)
                 enemy.TakeDamage(damage);
 
             return true;
         }
 
         return false;
+    }
+
+    private void SpawnHitEffect(EnemyHealth enemy, RaycastHit hit)
+    {
+        if (enemy.HitEffect == null || enemy.IsDead) return;
+
+        GameObject effect = Instantiate(enemy.HitEffect, hit.point, Quaternion.LookRotation(hit.normal), hit.collider.transform);
+        Destroy(effect, 2f);
     }
 }

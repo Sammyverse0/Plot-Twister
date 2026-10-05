@@ -16,12 +16,17 @@ public class EnemyHealth : MonoBehaviour
     [Header("Death")]
     [SerializeField] private float deathTime = 3f;
 
+    [Header("Effects")]
+    [SerializeField] private GameObject hitEffect;
+
     [Header("Floating Health Bar")]
     [SerializeField] private Transform healthBarRoot;
     [SerializeField] private Image healthBarFill;
 
     public float CurrentHealth { get; private set; }
     public float MaxHealth => maxHealth;
+    public bool IsDead => _dead;
+    public GameObject HitEffect => hitEffect;
 
     public event Action<float, float> OnHealthChanged;
     public event Action OnDeath;

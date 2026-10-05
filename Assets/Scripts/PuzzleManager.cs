@@ -9,6 +9,8 @@ public class LevelData
 {
     public int gridSize = 2;
     public GameObject[] alienPrefabs;
+    public GameObject bossPrefab;
+    public Transform bossSpawnPoint;
 }
 
 public class PuzzleManager : MonoBehaviour
@@ -342,8 +344,28 @@ public class PuzzleManager : MonoBehaviour
             }
         }
 
+        if (levels[_currentLevel].bossPrefab != null)
+            SpawnBoss(levels[_currentLevel]);
+
         if (_aliveAliens <= 0)
             CompleteLevel();
+    }
+
+    private void SpawnBoss(LevelData level)
+    {
+        Vector3 pos = level.bossSpawnPoint != null ? level.bossSpawnPoint.position : plotParent.position;
+        Quaternion rot = level.bossSpawnPoint != null ? level.bossSpawnPoint.rotation : Quaternion.identity;
+
+        GameObject boss = Instantiate(level.bossPrefab, pos, rot);
+
+        if (boss.TryGetComponent(out BossController controller))
+            controller.SetTarget(player);
+
+        if (boss.TryGetComponent(out EnemyHealth health))
+        {
+            _aliveAliens++;
+            health.OnDeath += HandleAlienDeath;
+        }
     }
 
     private void HandleAlienDeath()
