@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public class EnemyHealth : MonoBehaviour
 {
     [SerializeField] private float maxHealth = 100f;
+    [SerializeField] private bool isHeavy;
 
     [Header("Damage")]
     [SerializeField] private bool headshotKills = true;
@@ -26,6 +27,7 @@ public class EnemyHealth : MonoBehaviour
     public float CurrentHealth { get; private set; }
     public float MaxHealth => maxHealth;
     public bool IsDead => _dead;
+    public bool IsHeavy => isHeavy;
     public GameObject HitEffect => hitEffect;
 
     public event Action<float, float> OnHealthChanged;
