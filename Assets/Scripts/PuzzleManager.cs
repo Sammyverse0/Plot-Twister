@@ -17,6 +17,7 @@ public class LevelData
 
 public class PuzzleManager : MonoBehaviour
 {
+    public const string SaveKey = "SavedLevel";
     [Header("Levels")]
     [SerializeField] private LevelData[] levels;
 
@@ -77,7 +78,7 @@ public class PuzzleManager : MonoBehaviour
             player.TryGetComponent(out _playerHealth);
         }
 
-        BuildLevel(0);
+        BuildLevel(Mathf.Clamp(PlayerPrefs.GetInt(SaveKey, 0), 0, levels.Length - 1));
     }
 
     public bool HasNextLevel => _currentLevel + 1 < levels.Length;
@@ -97,6 +98,8 @@ public class PuzzleManager : MonoBehaviour
         ResetPlayer();
 
         _currentLevel = index;
+        PlayerPrefs.SetInt(SaveKey, index);
+        PlayerPrefs.Save();
         gridSize = levels[index].gridSize;
 
         tileGrid.startCorner = GridLayoutGroup.Corner.UpperLeft;
@@ -489,6 +492,7 @@ public class PuzzleManager : MonoBehaviour
 
         if (!HasNextLevel)
         {
+            PlayerPrefs.DeleteKey(SaveKey);
             Debug.Log("All levels complete");
             OnAllLevelsCompleted?.Invoke();
         }
