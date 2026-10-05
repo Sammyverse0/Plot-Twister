@@ -187,6 +187,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
   maxHealth: 1000
+  isHeavy: 0
   headshotKills: 0
   headshotMultiplier: 2
   bodyMultiplier: 1
@@ -207,33 +208,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b39974841ae678947a436d22487554eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossController
-  bossName: Cat Alien
+  bossName: BOB
   target: {fileID: 0}
   moveSpeed: 6
   turnSpeed: 5
   stopDistance: 3
   introTime: 3
-  touchDamage: 10
-  touchCooldown: 1.2
+  arenaRadius: 18
+  attackRange: 3.5
+  attackDamage: 20
+  attackHitDelay: 0.5
+  attackTime: 1.4
+  attackCooldown: 1.5
+  attackSound: {fileID: 0}
   minAttackDelay: 3
   maxAttackDelay: 6
-  spinTime: 5
-  spinSpeed: 10
-  roamRadius: 5
-  arenaRadius: 18
-  newPointEvery: 0.6
+  minDashes: 2
+  maxDashes: 3
+  dashSpeed: 16
+  dashOvershoot: 4
+  maxDashDistance: 22
+  dashPause: 1
   flingRadius: 2.5
   flingDamage: 15
   flingForce: 14
   flingUp: 7
-  tornadoEffect: {fileID: 0}
   spinSound: {fileID: 0}
+  dashSound: {fileID: 0}
   ufoPrefab: {fileID: 50811349932231465, guid: 4bef985d37e085945a8901ce32534294, type: 3}
   ufoSpawnPoint: {fileID: 4369469951731606498}
   ufoCount: 4
   ufoDelay: 0.6
   ufoGap: 0.2
   roarTime: 2.5
+  minSummons: 1
+  maxSummons: 4
   roarSound: {fileID: 0}
   poundWindup: 0.5
   jumpTime: 1.1
@@ -243,12 +252,8 @@ MonoBehaviour:
   poundRecover: 1
   shockwavePrefab: {fileID: 0}
   landingMarker: {fileID: 0}
+  jumpSound: {fileID: 0}
   poundSound: {fileID: 0}
-  minionPrefabs: []
-  minionInterval: 20
-  minionChance: 0.6
-  minionsPerWave: 2
-  maxMinions: 4
   voice: {fileID: 0}
   loopSource: {fileID: 0}
 --- !u!82 &5338132671012874472

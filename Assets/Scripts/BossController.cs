@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(EnemyHealth))]
@@ -13,25 +12,33 @@ public class BossController : MonoBehaviour
     [SerializeField] private float turnSpeed = 5f;
     [SerializeField] private float stopDistance = 3f;
     [SerializeField] private float introTime = 3f;
-    [SerializeField] private float touchDamage = 10f;
-    [SerializeField] private float touchCooldown = 1.2f;
+    [SerializeField] private float arenaRadius = 18f;
 
-    [Header("Attacks")]
+    [Header("Melee Attack")]
+    [SerializeField] private float attackRange = 3.5f;
+    [SerializeField] private float attackDamage = 20f;
+    [SerializeField] private float attackHitDelay = 0.5f;
+    [SerializeField] private float attackTime = 1.4f;
+    [SerializeField] private float attackCooldown = 1.5f;
+    [SerializeField] private AudioClip attackSound;
+
+    [Header("Special Attacks")]
     [SerializeField] private float minAttackDelay = 3f;
     [SerializeField] private float maxAttackDelay = 6f;
 
     [Header("Hurricane Kick")]
-    [SerializeField] private float spinTime = 5f;
-    [SerializeField] private float spinSpeed = 10f;
-    [SerializeField] private float roamRadius = 5f;
-    [SerializeField] private float arenaRadius = 18f;
-    [SerializeField] private float newPointEvery = 0.6f;
+    [SerializeField] private int minDashes = 2;
+    [SerializeField] private int maxDashes = 3;
+    [SerializeField] private float dashSpeed = 16f;
+    [SerializeField] private float dashOvershoot = 4f;
+    [SerializeField] private float maxDashDistance = 22f;
+    [SerializeField] private float dashPause = 1f;
     [SerializeField] private float flingRadius = 2.5f;
     [SerializeField] private float flingDamage = 15f;
     [SerializeField] private float flingForce = 14f;
     [SerializeField] private float flingUp = 7f;
-    [SerializeField] private GameObject tornadoEffect;
     [SerializeField] private AudioClip spinSound;
+    [SerializeField] private AudioClip dashSound;
 
     [Header("Roar")]
     [SerializeField] private UfoMissile ufoPrefab;
@@ -40,6 +47,8 @@ public class BossController : MonoBehaviour
     [SerializeField] private float ufoDelay = 0.6f;
     [SerializeField] private float ufoGap = 0.2f;
     [SerializeField] private float roarTime = 2.5f;
+    [SerializeField] private int minSummons = 1;
+    [SerializeField] private int maxSummons = 4;
     [SerializeField] private AudioClip roarSound;
 
     [Header("Ground Pound")]
@@ -51,14 +60,8 @@ public class BossController : MonoBehaviour
     [SerializeField] private float poundRecover = 1f;
     [SerializeField] private Shockwave shockwavePrefab;
     [SerializeField] private GameObject landingMarker;
+    [SerializeField] private AudioClip jumpSound;
     [SerializeField] private AudioClip poundSound;
-
-    [Header("Minions")]
-    [SerializeField] private GameObject[] minionPrefabs;
-    [SerializeField] private float minionInterval = 20f;
-    [SerializeField] private float minionChance = 0.6f;
-    [SerializeField] private int minionsPerWave = 2;
-    [SerializeField] private int maxMinions = 4;
 
     [Header("Sound")]
     [SerializeField] private AudioSource voice;
@@ -68,6 +71,7 @@ public class BossController : MonoBehaviour
     private static readonly int SpinHash = Animator.StringToHash("Spin");
     private static readonly int RoarHash = Animator.StringToHash("Roar");
     private static readonly int PoundHash = Animator.StringToHash("Pound");
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
     private static readonly int DieHash = Animator.StringToHash("Die");
 
     private Animator anim;
@@ -75,15 +79,12 @@ public class BossController : MonoBehaviour
     private PlayerHealth playerHealth;
     private FPSMovement playerMovement;
     private CameraShake cameraShake;
+    private PuzzleManager puzzle;
     private Collider[] myColliders;
-    private readonly List<GameObject> minions = new();
 
     private Vector3 arenaCenter;
-    private float nextTouchTime;
-    private float nextFlingTime;
-    private float nextMinionTime;
-    private int lastAttack = -1;
-    private bool busy;
+    private float nextAttackTime;
+    private int lastSpecial = -1;
     private bool dead;
     private GameObject marker;
 
@@ -93,14 +94,11 @@ public class BossController : MonoBehaviour
         health = GetComponent<EnemyHealth>();
         myColliders = GetComponentsInChildren<Collider>();
         health.OnDeath += Die;
-
-        if (tornadoEffect != null) tornadoEffect.SetActive(false);
     }
 
     private void Start()
     {
         arenaCenter = transform.position;
-        nextMinionTime = Time.time + introTime + minionInterval;
         cameraShake = FindFirstObjectByType<CameraShake>();
 
         if (target == null)
@@ -124,6 +122,11 @@ public class BossController : MonoBehaviour
         playerMovement = target.GetComponent<FPSMovement>();
     }
 
+    public void SetPuzzle(PuzzleManager newPuzzle)
+    {
+        puzzle = newPuzzle;
+    }
+
     private IEnumerator Brain()
     {
         yield return Roar(false);
@@ -135,129 +138,137 @@ public class BossController : MonoBehaviour
 
             while (time < wait)
             {
+                if (PlayerInRange(attackRange) && Time.time >= nextAttackTime)
+                {
+                    yield return MeleeAttack();
+                    time += attackTime;
+                    continue;
+                }
+
                 Chase();
                 time += Time.deltaTime;
                 yield return null;
             }
 
             SetRunning(false);
-            busy = true;
 
-            int attack = PickAttack();
-            if (attack == 0) yield return HurricaneKick();
-            else if (attack == 1) yield return Roar(true);
+            int special = PickSpecial();
+            if (special == 0) yield return HurricaneKick();
+            else if (special == 1) yield return Roar(true);
             else yield return GroundPound();
-
-            busy = false;
         }
     }
 
-    private int PickAttack()
+    private int PickSpecial()
     {
-        int attack = Random.Range(0, 3);
-        if (attack == lastAttack) attack = (attack + Random.Range(1, 3)) % 3;
+        int special = Random.Range(0, 3);
+        if (special == lastSpecial) special = (special + Random.Range(1, 3)) % 3;
 
-        lastAttack = attack;
-        return attack;
-    }
-
-    private void Update()
-    {
-        if (dead || target == null) return;
-
-        if (!busy && Time.time >= nextMinionTime)
-        {
-            nextMinionTime = Time.time + minionInterval;
-            if (Random.value <= minionChance) SpawnMinions();
-        }
+        lastSpecial = special;
+        return special;
     }
 
     private void Chase()
     {
         if (target == null) return;
 
-        Vector3 toPlayer = Flat(target.position - transform.position);
-        bool far = toPlayer.magnitude > stopDistance;
+        bool far = !PlayerInRange(stopDistance);
 
         SetRunning(far);
         FaceTowards(target.position);
 
-        if (far)
-            MoveTowards(target.position, moveSpeed);
-        else
-            TryTouchDamage();
+        if (far) MoveTowards(target.position, moveSpeed);
     }
 
-    private void TryTouchDamage()
+    private IEnumerator MeleeAttack()
     {
-        if (playerHealth == null || Time.time < nextTouchTime) return;
+        SetRunning(false);
+        FaceTowards(target.position, true);
 
-        playerHealth.TakeDamage(touchDamage);
-        nextTouchTime = Time.time + touchCooldown;
+        if (anim != null) anim.SetTrigger(AttackHash);
+        PlaySound(attackSound);
+
+        yield return new WaitForSeconds(attackHitDelay);
+
+        if (playerHealth != null && PlayerInRange(attackRange + 0.5f))
+            playerHealth.TakeDamage(attackDamage);
+
+        yield return new WaitForSeconds(Mathf.Max(0f, attackTime - attackHitDelay));
+
+        nextAttackTime = Time.time + attackCooldown;
     }
 
     private IEnumerator HurricaneKick()
     {
         if (anim != null) anim.SetBool(SpinHash, true);
-        if (tornadoEffect != null) tornadoEffect.SetActive(true);
         PlayLoop(spinSound);
 
-        float time = 0f;
-        float nextPoint = 0f;
-        Vector3 point = transform.position;
+        int dashes = Random.Range(minDashes, maxDashes + 1);
 
-        while (time < spinTime)
+        for (int i = 0; i < dashes && target != null; i++)
         {
-            if (time >= nextPoint)
+            float pause = 0f;
+            while (pause < dashPause)
             {
-                point = PickRoamPoint();
-                nextPoint = time + newPointEvery;
+                FaceTowards(target.position);
+                pause += Time.deltaTime;
+                yield return null;
             }
 
-            MoveTowards(point, spinSpeed);
-            TryFling();
-
-            time += Time.deltaTime;
-            yield return null;
+            yield return Dash();
         }
 
         if (anim != null) anim.SetBool(SpinHash, false);
-        if (tornadoEffect != null) tornadoEffect.SetActive(false);
         StopLoop();
     }
 
-    private Vector3 PickRoamPoint()
+    private IEnumerator Dash()
     {
-        Vector2 random = Random.insideUnitCircle * roamRadius;
-        Vector3 point = target.position + new Vector3(random.x, 0f, random.y);
+        Vector3 toPlayer = Flat(target.position - transform.position);
+        if (toPlayer.sqrMagnitude < 0.01f) yield break;
 
-        Vector3 fromCenter = Flat(point - arenaCenter);
-        if (fromCenter.magnitude > arenaRadius)
-            point = arenaCenter + fromCenter.normalized * arenaRadius;
+        Vector3 dir = toPlayer.normalized;
+        float distance = Mathf.Min(toPlayer.magnitude + dashOvershoot, maxDashDistance);
+        Vector3 end = ClampToArena(transform.position + dir * distance);
+        distance = Flat(end - transform.position).magnitude;
 
-        return point;
+        transform.rotation = Quaternion.LookRotation(dir);
+        PlaySound(dashSound);
+
+        bool flung = false;
+        float travelled = 0f;
+
+        while (travelled < distance)
+        {
+            float step = Mathf.Min(dashSpeed * Time.deltaTime, distance - travelled);
+            Vector3 pos = transform.position + dir * step;
+            pos.y = GroundHeight(pos);
+            transform.position = pos;
+            travelled += step;
+
+            if (!flung) flung = TryFling();
+
+            yield return null;
+        }
     }
 
-    private void TryFling()
+    private bool TryFling()
     {
-        if (playerHealth == null || Time.time < nextFlingTime) return;
+        if (playerHealth == null || !PlayerInRange(flingRadius)) return false;
 
-        Vector3 toPlayer = Flat(target.position - transform.position);
-        if (toPlayer.magnitude > flingRadius) return;
+        Vector3 away = Flat(target.position - transform.position).normalized;
 
         playerHealth.TakeDamage(flingDamage);
-
         if (playerMovement != null)
-            playerMovement.Knockback(toPlayer.normalized * flingForce + Vector3.up * flingUp);
-
+            playerMovement.Knockback(away * flingForce + Vector3.up * flingUp);
         if (cameraShake != null) cameraShake.Shake(2f, 0.4f);
 
-        nextFlingTime = Time.time + 1f;
+        return true;
     }
 
-    private IEnumerator Roar(bool summonUfos)
+    private IEnumerator Roar(bool summon)
     {
-        FaceTowards(target != null ? target.position : transform.position + transform.forward, true);
+        if (target != null) FaceTowards(target.position, true);
 
         if (anim != null) anim.SetTrigger(RoarHash);
         PlaySound(roarSound);
@@ -265,20 +276,26 @@ public class BossController : MonoBehaviour
 
         float time = 0f;
 
-        if (summonUfos && ufoPrefab != null && target != null)
+        if (summon && target != null)
         {
             yield return new WaitForSeconds(ufoDelay);
             time += ufoDelay;
 
-            for (int i = 0; i < ufoCount; i++)
+            if (puzzle != null)
+                puzzle.SummonFromPlots(Random.Range(minSummons, maxSummons + 1));
+
+            if (ufoPrefab != null)
             {
-                SpawnUfo(i);
-                yield return new WaitForSeconds(ufoGap);
-                time += ufoGap;
+                for (int i = 0; i < ufoCount; i++)
+                {
+                    SpawnUfo(i);
+                    yield return new WaitForSeconds(ufoGap);
+                    time += ufoGap;
+                }
             }
         }
 
-        float wait = summonUfos ? roarTime : introTime;
+        float wait = summon ? roarTime : introTime;
         if (time < wait) yield return new WaitForSeconds(wait - time);
     }
 
@@ -300,7 +317,7 @@ public class BossController : MonoBehaviour
     private IEnumerator GroundPound()
     {
         Vector3 start = transform.position;
-        Vector3 land = target.position;
+        Vector3 land = ClampToArena(target.position);
         land.y = GroundHeight(land);
 
         FaceTowards(land, true);
@@ -310,6 +327,8 @@ public class BossController : MonoBehaviour
             marker = Instantiate(landingMarker, land + Vector3.up * 0.05f, Quaternion.identity);
 
         yield return new WaitForSeconds(poundWindup);
+
+        PlaySound(jumpSound);
 
         float time = 0f;
         while (time < jumpTime)
@@ -351,36 +370,12 @@ public class BossController : MonoBehaviour
             Instantiate(shockwavePrefab, land, Quaternion.identity);
     }
 
-    private void SpawnMinions()
-    {
-        if (minionPrefabs == null || minionPrefabs.Length == 0) return;
-
-        minions.RemoveAll(m => m == null);
-
-        for (int i = 0; i < minionsPerWave && minions.Count < maxMinions; i++)
-        {
-            Vector2 random = Random.insideUnitCircle.normalized * Random.Range(3f, 6f);
-            Vector3 pos = transform.position + new Vector3(random.x, 0f, random.y);
-            pos.y = GroundHeight(pos);
-
-            GameObject prefab = minionPrefabs[Random.Range(0, minionPrefabs.Length)];
-            GameObject minion = Instantiate(prefab, pos, Quaternion.identity);
-
-            if (!minion.TryGetComponent(out AlienFollower follower))
-                follower = minion.AddComponent<AlienFollower>();
-
-            follower.SetTarget(target);
-            minions.Add(minion);
-        }
-    }
-
     private void Die()
     {
         dead = true;
         StopAllCoroutines();
 
         SetRunning(false);
-        if (tornadoEffect != null) tornadoEffect.SetActive(false);
         if (marker != null) Destroy(marker);
         StopLoop();
 
@@ -389,10 +384,21 @@ public class BossController : MonoBehaviour
             anim.SetBool(SpinHash, false);
             if (HasParameter(DieHash)) anim.SetTrigger(DieHash);
         }
+    }
 
-        foreach (GameObject minion in minions)
-            if (minion != null) Destroy(minion);
-        minions.Clear();
+    private bool PlayerInRange(float range)
+    {
+        return target != null && Flat(target.position - transform.position).magnitude <= range;
+    }
+
+    private Vector3 ClampToArena(Vector3 point)
+    {
+        Vector3 fromCenter = Flat(point - arenaCenter);
+        if (fromCenter.magnitude <= arenaRadius) return point;
+
+        Vector3 clamped = arenaCenter + fromCenter.normalized * arenaRadius;
+        clamped.y = point.y;
+        return clamped;
     }
 
     private void MoveTowards(Vector3 point, float speed)

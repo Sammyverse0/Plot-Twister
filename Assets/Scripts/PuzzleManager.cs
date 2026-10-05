@@ -11,6 +11,8 @@ public class LevelData
     public GameObject[] alienPrefabs;
     public GameObject bossPrefab;
     public Transform bossSpawnPoint;
+    public GameObject reinforcementPrefab;
+    public float reinforcementInterval = 6f;
 }
 
 public class PuzzleManager : MonoBehaviour
@@ -36,6 +38,7 @@ public class PuzzleManager : MonoBehaviour
 
     [Header("Aliens")]
     [SerializeField] private Transform player;
+    [SerializeField] private int maxAliveEnemies = 10;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
@@ -50,6 +53,8 @@ public class PuzzleManager : MonoBehaviour
     private int gridSize;
     private int _currentLevel;
     private int _aliveAliens;
+    private int _aliveHeavies;
+    private float _nextReinforcement;
     private bool _solved;
 
     private PlayerHealth _playerHealth;
@@ -167,6 +172,7 @@ public class PuzzleManager : MonoBehaviour
         _tileImages.Clear();
         _aliens.Clear();
         _aliveAliens = 0;
+        _aliveHeavies = 0;
         _solved = false;
     }
 
@@ -265,6 +271,20 @@ public class PuzzleManager : MonoBehaviour
     private void Update()
     {
         if (uiPanel.activeSelf) SyncTiles();
+        HandleReinforcements();
+    }
+
+    private void HandleReinforcements()
+    {
+        LevelData level = levels[_currentLevel];
+
+        if (_aliveHeavies <= 0 || level.reinforcementPrefab == null) return;
+        if (Time.time < _nextReinforcement) return;
+
+        _nextReinforcement = Time.time + level.reinforcementInterval;
+
+        if (_aliveAliens < maxAliveEnemies)
+            SpawnEnemy(level.reinforcementPrefab, RandomPlotPosition());
     }
 
     private void SyncTiles()
@@ -352,37 +372,72 @@ public class PuzzleManager : MonoBehaviour
     {
         uiPanel.SetActive(false);
 
-        GameObject[] prefabs = levels[_currentLevel].alienPrefabs;
+        LevelData level = levels[_currentLevel];
+
+        if (level.bossPrefab != null)
+        {
+            SpawnBoss(level);
+            return;
+        }
+
+        GameObject[] prefabs = level.alienPrefabs;
 
         if (prefabs != null && prefabs.Length > 0)
         {
             for (int i = 0; i < _plots.Count; i++)
-            {
-                GameObject alien = Instantiate(prefabs[i % prefabs.Length], _plots[i].transform.position + Vector3.up, Quaternion.identity);
-                _aliens.Add(alien);
-
-                if (!alien.TryGetComponent(out AlienFollower follower))
-                    follower = alien.AddComponent<AlienFollower>();
-
-                follower.SetTarget(player);
-
-                if (alien.TryGetComponent(out EnemyHealth health))
-                {
-                    _aliveAliens++;
-                    health.OnDeath += HandleAlienDeath;
-                }
-                else
-                {
-                    Debug.LogWarning($"{alien.name} has no EnemyHealth, so it can't be counted for level completion.");
-                }
-            }
+                SpawnEnemy(prefabs[i % prefabs.Length], _plots[i].transform.position + Vector3.up);
         }
 
-        if (levels[_currentLevel].bossPrefab != null)
-            SpawnBoss(levels[_currentLevel]);
+        _nextReinforcement = Time.time + level.reinforcementInterval;
 
         if (_aliveAliens <= 0)
             CompleteLevel();
+    }
+
+    private Vector3 RandomPlotPosition()
+    {
+        return _plots[Random.Range(0, _plots.Count)].transform.position + Vector3.up;
+    }
+
+    private void SpawnEnemy(GameObject prefab, Vector3 pos)
+    {
+        GameObject alien = Instantiate(prefab, pos, Quaternion.identity);
+        _aliens.Add(alien);
+
+        if (!alien.TryGetComponent(out AlienFollower follower))
+            follower = alien.AddComponent<AlienFollower>();
+
+        follower.SetTarget(player);
+
+        if (!alien.TryGetComponent(out EnemyHealth health))
+        {
+            Debug.LogWarning($"{alien.name} has no EnemyHealth, so it can't be counted for level completion.");
+            return;
+        }
+
+        _aliveAliens++;
+        health.OnDeath += HandleAlienDeath;
+
+        if (health.IsHeavy)
+        {
+            _aliveHeavies++;
+            health.OnDeath += () => _aliveHeavies--;
+        }
+    }
+
+    public int SummonFromPlots(int count)
+    {
+        GameObject[] prefabs = levels[_currentLevel].alienPrefabs;
+        if (prefabs == null || prefabs.Length == 0 || _plots.Count == 0) return 0;
+
+        int spawned = 0;
+        while (spawned < count && _aliveAliens < maxAliveEnemies)
+        {
+            SpawnEnemy(prefabs[Random.Range(0, prefabs.Length)], RandomPlotPosition());
+            spawned++;
+        }
+
+        return spawned;
     }
 
     private void SpawnBoss(LevelData level)
@@ -391,15 +446,32 @@ public class PuzzleManager : MonoBehaviour
         Quaternion rot = level.bossSpawnPoint != null ? level.bossSpawnPoint.rotation : Quaternion.identity;
 
         GameObject boss = Instantiate(level.bossPrefab, pos, rot);
+        _aliens.Add(boss);
 
         if (boss.TryGetComponent(out BossController controller))
+        {
             controller.SetTarget(player);
+            controller.SetPuzzle(this);
+        }
 
         if (boss.TryGetComponent(out EnemyHealth health))
         {
             _aliveAliens++;
-            health.OnDeath += HandleAlienDeath;
+            health.OnDeath += () => HandleBossDeath(boss);
         }
+    }
+
+    private void HandleBossDeath(GameObject boss)
+    {
+        foreach (GameObject alien in _aliens)
+            if (alien != null && alien != boss) Destroy(alien);
+
+        _aliens.Clear();
+        _aliens.Add(boss);
+        _aliveAliens = 0;
+        _aliveHeavies = 0;
+
+        CompleteLevel();
     }
 
     private void HandleAlienDeath()

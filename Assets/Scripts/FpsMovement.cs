@@ -200,7 +200,7 @@ public class FPSMovement : MonoBehaviour
     private void HandleMovement()
     {
         var move = cameraTransform.TransformDirection(new Vector3(_moveInput.x, 0, _moveInput.y));
-        move.y = 0f;
+        move.y = 0f;    
         move.Normalize();
         var currentSpeed = _isCrouching ? crouchSpeed : IsSprinting ? runSpeed : walkSpeed;
         var finalMove = move * currentSpeed + _pushVelocity;

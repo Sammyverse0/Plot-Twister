@@ -1,16 +1,17 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class BossHealthBar : MonoBehaviour
 {
     [SerializeField] private GameObject bar;
-    [SerializeField] private Image fill;
-    [SerializeField] private Image delayedFill;
+    [SerializeField] private RectTransform fill;
+    [SerializeField] private RectTransform delayedFill;
     [SerializeField] private TMP_Text nameText;
     [SerializeField] private float delayedSpeed = 0.5f;
 
     private EnemyHealth boss;
+    private float health = 1f;
+    private float delayedHealth = 1f;
 
     private void Awake()
     {
@@ -24,23 +25,43 @@ public class BossHealthBar : MonoBehaviour
         boss.OnDeath += Hide;
 
         if (nameText != null) nameText.text = bossName;
-        fill.fillAmount = 1f;
-        if (delayedFill != null) delayedFill.fillAmount = 1f;
+
+        health = 1f;
+        delayedHealth = 1f;
+        SetWidth(fill, health);
+        SetWidth(delayedFill, delayedHealth);
 
         bar.SetActive(true);
     }
 
     private void Update()
     {
-        if (delayedFill == null || !bar.activeSelf) return;
+        if (bar.activeSelf && boss == null)
+        {
+            bar.SetActive(false);
+            return;
+        }
 
-        if (delayedFill.fillAmount > fill.fillAmount)
-            delayedFill.fillAmount = Mathf.MoveTowards(delayedFill.fillAmount, fill.fillAmount, delayedSpeed * Time.deltaTime);
+        if (!bar.activeSelf || delayedHealth <= health) return;
+
+        delayedHealth = Mathf.MoveTowards(delayedHealth, health, delayedSpeed * Time.deltaTime);
+        SetWidth(delayedFill, delayedHealth);
     }
 
     private void UpdateBar(float current, float max)
     {
-        fill.fillAmount = current / max;
+        health = current / max;
+        SetWidth(fill, health);
+    }
+
+    private void SetWidth(RectTransform rect, float amount)
+    {
+        if (rect == null) return;
+
+        rect.anchorMin = new Vector2(0f, 0f);
+        rect.anchorMax = new Vector2(Mathf.Clamp01(amount), 1f);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
     }
 
     private void Hide()
@@ -52,5 +73,14 @@ public class BossHealthBar : MonoBehaviour
         }
 
         bar.SetActive(false);
+    }
+
+    private void OnDestroy()
+    {
+        if (boss != null)
+        {
+            boss.OnHealthChanged -= UpdateBar;
+            boss.OnDeath -= Hide;
+        }
     }
 }
