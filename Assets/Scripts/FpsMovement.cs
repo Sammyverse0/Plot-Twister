@@ -1,9 +1,7 @@
 using System;
 using TMPro;
-using UnityEditor.Search;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.EnhancedTouch;
 
 public class FPSMovement : MonoBehaviour
 {
