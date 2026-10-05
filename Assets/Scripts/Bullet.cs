@@ -17,7 +17,7 @@ public class Bullet : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        
+
         EnemyHealth enemy = collision.collider.GetComponentInParent<EnemyHealth>();
         if (enemy != null)
             enemy.TakeDamage(damage);

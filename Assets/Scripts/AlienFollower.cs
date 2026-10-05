@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -8,14 +9,32 @@ public class AlienFollower : MonoBehaviour
     [SerializeField] private float moveSpeed = 2.5f;
     [SerializeField] private float stopDistance = 1.5f;
     [SerializeField] private float turnSpeed = 8f;
+    [SerializeField] private float standUpDuration = 2f;
+
+    [Header("Separation")]
+    [SerializeField] private float separationRadius = 1.2f;
+    [SerializeField] private float separationWeight = 1.5f;
+
+    private static readonly List<AlienFollower> All = new();
+    private static readonly int IsWalkingHash = Animator.StringToHash("IsWalking");
 
     private NavMeshAgent _agent;
+    private Animator _animator;
+    private float _wakeTime;
+
+    public bool IsAwake => Time.time >= _wakeTime;
 
     private void Awake()
     {
         TryGetComponent(out _agent);
+        _animator = GetComponentInChildren<Animator>();
+        _wakeTime = Time.time + standUpDuration;
         ApplyAgentSettings();
     }
+
+    private void OnEnable() => All.Add(this);
+
+    private void OnDisable() => All.Remove(this);
 
     public void SetTarget(Transform newTarget)
     {
@@ -32,25 +51,64 @@ public class AlienFollower : MonoBehaviour
 
     private void Update()
     {
-        if (target == null) return;
+        if (target == null || !IsAwake) return;
 
-        
+        if (_animator != null && !_animator.GetBool(IsWalkingHash))
+            _animator.SetBool(IsWalkingHash, true);
+
         if (_agent != null && _agent.enabled && _agent.isOnNavMesh)
         {
             _agent.SetDestination(target.position);
             return;
         }
 
-        
         Vector3 toTarget = target.position - transform.position;
         toTarget.y = 0f;
-        if (toTarget.magnitude <= stopDistance) return;
 
-        Vector3 dir = toTarget.normalized;
-        transform.position += dir * (moveSpeed * Time.deltaTime);
-        transform.rotation = Quaternion.Slerp(
-            transform.rotation,
-            Quaternion.LookRotation(dir),
-            turnSpeed * Time.deltaTime);
+        Vector3 move = Vector3.zero;
+        if (toTarget.magnitude > stopDistance)
+            move += toTarget.normalized;
+        move += GetSeparation() * separationWeight;
+
+        if (move.sqrMagnitude > 1f)
+            move.Normalize();
+
+        transform.position += move * (moveSpeed * Time.deltaTime);
+
+        if (toTarget.sqrMagnitude > 0.0001f)
+        {
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                Quaternion.LookRotation(toTarget.normalized),
+                turnSpeed * Time.deltaTime);
+        }
+    }
+
+    private Vector3 GetSeparation()
+    {
+        Vector3 push = Vector3.zero;
+
+        foreach (AlienFollower other in All)
+        {
+            if (other == this) continue;
+
+            Vector3 offset = transform.position - other.transform.position;
+            offset.y = 0f;
+            float distance = offset.magnitude;
+
+            if (distance >= separationRadius) continue;
+
+            if (distance < 0.0001f)
+            {
+                Vector2 random = Random.insideUnitCircle.normalized;
+                push += new Vector3(random.x, 0f, random.y);
+            }
+            else
+            {
+                push += offset / distance * (1f - distance / separationRadius);
+            }
+        }
+
+        return push;
     }
 }
