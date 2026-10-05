@@ -2,33 +2,64 @@ using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    public float speed = 15f;
+    public float speed = 150f;
     public float lifeTime = 3f;
     public float damage = 25f;
+    [SerializeField] private LayerMask hitMask = ~0;
 
-    private Rigidbody rb;
+    private Vector3 direction;
+
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
-        rb.linearVelocity = -transform.right * speed;
+        direction = -transform.right;
+
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null) rb.isKinematic = true;
+
         Destroy(gameObject, lifeTime);
     }
 
-
-    private void OnCollisionEnter(Collision collision)
+    void Update()
     {
-        HitZone zone = collision.collider.GetComponent<HitZone>();
-        if (zone != null)
+        float distance = speed * Time.deltaTime;
+
+        if (CheckHit(distance))
         {
-            zone.Hit(damage);
+            Destroy(gameObject);
+            return;
         }
-        else
+
+        transform.position += direction * distance;
+    }
+
+    private bool CheckHit(float distance)
+    {
+        RaycastHit[] hits = Physics.RaycastAll(transform.position, direction, distance, hitMask, QueryTriggerInteraction.Collide);
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (RaycastHit hit in hits)
         {
-            EnemyHealth enemy = collision.collider.GetComponentInParent<EnemyHealth>();
+            Collider col = hit.collider;
+
+            if (col.transform.IsChildOf(transform)) continue;
+            if (col.GetComponentInParent<CharacterController>() != null) continue;
+
+            HitZone zone = col.GetComponent<HitZone>();
+            if (zone != null)
+            {
+                zone.Hit(damage);
+                return true;
+            }
+
+            if (col.isTrigger) continue;
+
+            EnemyHealth enemy = col.GetComponentInParent<EnemyHealth>();
             if (enemy != null)
                 enemy.TakeDamage(damage);
+
+            return true;
         }
 
-        Destroy(gameObject);
+        return false;
     }
 }
