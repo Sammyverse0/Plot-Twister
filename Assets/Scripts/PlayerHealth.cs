@@ -8,6 +8,10 @@ public class PlayerHealth : MonoBehaviour
     [SerializeField] private float invulnerableTime = 0.5f;
     [SerializeField] private bool freezeOnDeath = true;
 
+    [Header("Sound")]
+    [SerializeField] private AudioSource deathSource;
+    [SerializeField] private AudioClip deathSound;
+
     [Header("UI")]
     [SerializeField] private Image healthBarFill;
     [SerializeField] private Image damageFlash;
@@ -79,6 +83,12 @@ public class PlayerHealth : MonoBehaviour
     {
         IsDead = true;
         Debug.Log("Player died");
+
+        if (deathSource != null && deathSound != null)
+        {
+            deathSource.Stop();
+            deathSource.PlayOneShot(deathSound);
+        }
 
         if (freezeOnDeath && TryGetComponent(out FPSMovement movement))
             movement.enabled = false;

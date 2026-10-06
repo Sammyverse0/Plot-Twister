@@ -233,7 +233,7 @@ MonoBehaviour:
   flingDamage: 15
   flingForce: 14
   flingUp: 7
-  spinSound: {fileID: 0}
+  spinSound: {fileID: 8300000, guid: 743cea6748efdb64fbe51e0681d95b86, type: 3}
   dashSound: {fileID: 0}
   ufoPrefab: {fileID: 50811349932231465, guid: 4bef985d37e085945a8901ce32534294, type: 3}
   ufoSpawnPoint: {fileID: 4369469951731606498}
@@ -243,19 +243,20 @@ MonoBehaviour:
   roarTime: 2.5
   minSummons: 1
   maxSummons: 4
-  roarSound: {fileID: 0}
+  roarSound: {fileID: 8300000, guid: 5ff87cc2094b1f54abe0fc1ba4197215, type: 3}
   poundWindup: 0.5
   jumpTime: 1.1
   jumpHeight: 5
+  maxJumpDistance: 15
   poundDamage: 40
   poundRadius: 4
   poundRecover: 1
   shockwavePrefab: {fileID: 0}
   landingMarker: {fileID: 0}
-  jumpSound: {fileID: 0}
-  poundSound: {fileID: 0}
-  voice: {fileID: 0}
-  loopSource: {fileID: 0}
+  jumpSound: {fileID: 8300000, guid: fde49f6cd651d8a4a854adbb1323cd2e, type: 3}
+  poundSound: {fileID: 8300000, guid: 202738ea16dde9d4b842cb8293243046, type: 3}
+  voice: {fileID: 4702632325728420896}
+  loopSource: {fileID: 4702632325728420896}
 --- !u!82 &5338132671012874472
 AudioSource:
   m_ObjectHideFlags: 0
@@ -365,7 +366,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0

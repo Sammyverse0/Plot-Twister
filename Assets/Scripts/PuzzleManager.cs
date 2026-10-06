@@ -13,7 +13,6 @@ public class LevelData
     public GameObject bossPrefab;
     public Transform bossSpawnPoint;
     public GameObject reinforcementPrefab;
-    public float reinforcementInterval = 6f;
 }
 
 public class PuzzleManager : MonoBehaviour
@@ -24,9 +23,14 @@ public class PuzzleManager : MonoBehaviour
     [Header("Ending Cutscene")]
     [SerializeField] private VideoPlayer endingCutscenePlayer;
     [SerializeField] private GameObject endingCutscenePanel;
+    [SerializeField] private GameObject[] hideDuringEnding;
+    [SerializeField] private string sceneAfterEnding = "MainMenu";
     [Header("Combat Music")]
     [SerializeField] private AudioSource combatMusicSource;
     [SerializeField] private AudioClip combatMusic;
+    [Header("Ambient Noise")]
+    [SerializeField] private AudioSource ambientSource;
+    [SerializeField] private AudioClip ambientClip;
     [Header("Levels")]
     [SerializeField] private LevelData[] levels;
 
@@ -59,6 +63,12 @@ public class PuzzleManager : MonoBehaviour
     [SerializeField] private Transform player;
     [SerializeField] private int maxAliveEnemies = 10;
 
+    [Header("Reinforcements")]
+    [SerializeField] private GameObject basicAlienPrefab;
+    [SerializeField] private Vector2Int reinforcementCount = new Vector2Int(3, 4);
+    [SerializeField] private Vector2 reinforcementDelay = new Vector2(5f, 10f);
+    [SerializeField] private int maxBasicAliens = 10;
+
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
 
@@ -73,9 +83,11 @@ public class PuzzleManager : MonoBehaviour
     private int _currentLevel;
     private int _aliveAliens;
     private int _aliveHeavies;
+    private int _aliveBasics;
     private float _nextReinforcement;
     private bool _solved;
     private bool _completing;
+    public bool IsPlayingEnding { get; private set; }
     private RectTransform _startPipe;
     private RectTransform _endPipe;
 
@@ -205,6 +217,7 @@ public class PuzzleManager : MonoBehaviour
         }
 
         SyncTiles();
+        PlayAmbient();
         OnLevelStarted?.Invoke(_currentLevel);
     }
 
@@ -222,6 +235,7 @@ public class PuzzleManager : MonoBehaviour
         _aliens.Clear();
         _aliveAliens = 0;
         _aliveHeavies = 0;
+        _aliveBasics = 0;
         _solved = false;
         _completing = false;
 
@@ -336,14 +350,23 @@ public class PuzzleManager : MonoBehaviour
     private void HandleReinforcements()
     {
         LevelData level = levels[_currentLevel];
+        GameObject prefab = level.reinforcementPrefab != null ? level.reinforcementPrefab : basicAlienPrefab;
 
-        if (_aliveHeavies <= 0 || level.reinforcementPrefab == null) return;
+        if (!_solved || _completing || level.bossPrefab != null) return;
+        if (_aliveHeavies <= 0 || prefab == null || _plots.Count == 0) return;
         if (Time.time < _nextReinforcement) return;
 
-        _nextReinforcement = Time.time + level.reinforcementInterval;
+        _nextReinforcement = Time.time + Random.Range(reinforcementDelay.x, reinforcementDelay.y);
 
-        if (_aliveAliens < maxAliveEnemies)
-            SpawnEnemy(level.reinforcementPrefab, RandomPlotPosition());
+        List<Plot> freePlots = new List<Plot>(_plots);
+        int count = Random.Range(reinforcementCount.x, reinforcementCount.y + 1);
+
+        for (int i = 0; i < count && _aliveBasics < maxBasicAliens && freePlots.Count > 0; i++)
+        {
+            int pick = Random.Range(0, freePlots.Count);
+            SpawnEnemy(prefab, freePlots[pick].transform.position + Vector3.up);
+            freePlots.RemoveAt(pick);
+        }
     }
 
     private RectTransform MakeEndPipe(string pipeName, Sprite sprite, Vector2 pivot)
@@ -476,6 +499,7 @@ public class PuzzleManager : MonoBehaviour
 
     private void SpawnAliens()
     {
+        StopAmbient();
         PlayCombatMusic();
         uiPanel.SetActive(false);
 
@@ -507,8 +531,7 @@ public class PuzzleManager : MonoBehaviour
         // Start combat music
         PlayCombatMusic();
 
-        // Start reinforcement timer
-        _nextReinforcement = Time.time + level.reinforcementInterval;
+        _nextReinforcement = Time.time + Random.Range(reinforcementDelay.x, reinforcementDelay.y);
 
         if (_aliveAliens <= 0)
             CompleteLevel();
@@ -538,10 +561,15 @@ public class PuzzleManager : MonoBehaviour
         _aliveAliens++;
         health.OnDeath += HandleAlienDeath;
 
-        if (health.IsHeavy)
+        if (health.IsHeavy || prefab.name.Contains("Heavy"))
         {
             _aliveHeavies++;
             health.OnDeath += () => _aliveHeavies--;
+        }
+        else
+        {
+            _aliveBasics++;
+            health.OnDeath += () => _aliveBasics--;
         }
     }
 
@@ -590,6 +618,7 @@ public class PuzzleManager : MonoBehaviour
         _aliens.Add(boss);
         _aliveAliens = 0;
         _aliveHeavies = 0;
+        _aliveBasics = 0;
 
         CompleteLevel();
     }
@@ -624,17 +653,20 @@ public class PuzzleManager : MonoBehaviour
         if (harvestCutscene != null)
             yield return harvestCutscene.Play(_plots);
 
-        OnLevelCompleted?.Invoke(_currentLevel);
-
-        if (!HasNextLevel)
+        if (HasNextLevel)
         {
-            PlayerPrefs.DeleteKey(SaveKey);
-            Debug.Log("All levels complete");
-
-            PlayEndingCutscene();
-
-            OnAllLevelsCompleted?.Invoke();
+            OnLevelCompleted?.Invoke(_currentLevel);
+            yield break;
         }
+
+        PlayerPrefs.DeleteKey(SaveKey);
+        Debug.Log("All levels complete");
+        OnAllLevelsCompleted?.Invoke();
+
+        yield return PlayEndingCutscene();
+
+        Time.timeScale = 1f;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(sceneAfterEnding);
     }
 
     public void NextLevel()
@@ -667,24 +699,61 @@ public class PuzzleManager : MonoBehaviour
         if (combatMusicSource != null && combatMusicSource.isPlaying)
             combatMusicSource.Stop();
     }
-    private void PlayEndingCutscene()
+    private IEnumerator PlayEndingCutscene()
     {
         if (endingCutscenePlayer == null)
         {
             Debug.LogWarning("Ending cutscene VideoPlayer is not assigned.");
-            return;
+            yield break;
         }
 
+        IsPlayingEnding = true;
         Time.timeScale = 1f;
-
-        Cursor.lockState = CursorLockMode.None;
+        Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        StopCombatMusic();
+        StopAmbient();
+        AudioListener.pause = false;
+
+        if (player != null)
+        {
+            if (player.TryGetComponent(out FPSMovement movement)) movement.enabled = false;
+            if (player.TryGetComponent(out PlayerShooting shooting)) shooting.enabled = false;
+        }
+
+        foreach (GameObject thing in hideDuringEnding)
+            if (thing != null) thing.SetActive(false);
 
         if (endingCutscenePanel != null)
             endingCutscenePanel.SetActive(true);
 
+        bool finished = false;
+        endingCutscenePlayer.loopPointReached += _ => finished = true;
+        endingCutscenePlayer.isLooping = false;
+        endingCutscenePlayer.audioOutputMode = VideoAudioOutputMode.Direct;
+
         endingCutscenePlayer.Stop();
         endingCutscenePlayer.Play();
+
+        while (!finished)
+            yield return null;
+
+        IsPlayingEnding = false;
+    }
+
+    private void PlayAmbient()
+    {
+        if (ambientSource == null || ambientClip == null) return;
+
+        ambientSource.clip = ambientClip;
+        ambientSource.loop = true;
+        if (!ambientSource.isPlaying) ambientSource.Play();
+    }
+
+    private void StopAmbient()
+    {
+        if (ambientSource != null) ambientSource.Stop();
     }
 
     public void CloseLevel1Intro()

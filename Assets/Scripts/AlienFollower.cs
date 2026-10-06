@@ -14,6 +14,10 @@ public class AlienFollower : MonoBehaviour
     [SerializeField] private string riseStateName = "Stand up";
     [SerializeField] private float hitStunTime = 0.4f;
 
+    [Header("Sound")]
+    [SerializeField] private AudioClip riseSound;
+    [SerializeField] private float riseVolume = 1f;
+
     [Header("Separation")]
     [SerializeField] private float separationRadius = 1.2f;
     [SerializeField] private float separationWeight = 1.5f;
@@ -28,6 +32,7 @@ public class AlienFollower : MonoBehaviour
     private Animator _animator;
     private float _wakeTime;
     private bool _isRising = true;
+    private AudioSource _riseSource;
     private float _stunnedUntil;
     private bool _isCrawling;
     private bool _isDead;
@@ -42,6 +47,20 @@ public class AlienFollower : MonoBehaviour
         _animator = GetComponentInChildren<Animator>();
         _wakeTime = Time.time + standUpDuration;
         ApplyAgentSettings();
+    }
+
+    private void Start()
+    {
+        if (riseSound == null) return;
+
+        _riseSource = gameObject.AddComponent<AudioSource>();
+        _riseSource.clip = riseSound;
+        _riseSource.volume = riseVolume;
+        _riseSource.spatialBlend = 1f;
+        _riseSource.minDistance = 3f;
+        _riseSource.maxDistance = 40f;
+        _riseSource.playOnAwake = false;
+        _riseSource.Play();
     }
 
     private void OnEnable() => All.Add(this);
@@ -105,7 +124,10 @@ public class AlienFollower : MonoBehaviour
 
         AnimatorStateInfo state = _animator.GetCurrentAnimatorStateInfo(0);
         if (!state.IsName(riseStateName) || state.normalizedTime >= 1f)
+        {
             _isRising = false;
+            if (_riseSource != null) _riseSource.Stop();
+        }
     }
 
     private void Update()

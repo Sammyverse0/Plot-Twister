@@ -61,7 +61,12 @@ public class GameUI : MonoBehaviour
 
     private void TogglePause()
     {
-        // Don't open pause menu over these panels
+        if (playerHealth != null && playerHealth.IsDead)
+            return;
+
+        if (puzzleManager != null && puzzleManager.IsPlayingEnding)
+            return;
+
         if (restartPanel != null && restartPanel.activeSelf)
             return;
 
