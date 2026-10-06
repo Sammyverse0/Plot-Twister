@@ -47,7 +47,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5abd182d74506449b2b672eef8ab624, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
-  maxHealth: 100
+  maxHealth: 1
   headshotKills: 1
   headshotMultiplier: 2
   bodyMultiplier: 1

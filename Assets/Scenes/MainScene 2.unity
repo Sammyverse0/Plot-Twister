@@ -663,7 +663,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 339565077}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: GameUI, Assembly-CSharp
         m_MethodName: OnNextClicked
         m_Mode: 1
@@ -1702,7 +1702,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 60.000004
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -1728,8 +1728,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 32.02, y: 7.6276, z: 10.4316}
+  m_LocalRotation: {x: -0.20083281, y: -0.0038238813, z: 0.00078176404, w: -0.9796178}
+  m_LocalPosition: {x: 47.230637, y: 14.614125, z: 23.163836}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1893,7 +1893,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 339565078}
-  - component: {fileID: 339565077}
   m_Layer: 0
   m_Name: GameUI
   m_TagString: Untagged
@@ -1901,25 +1900,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &339565077
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 339565076}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 79b92b8bf939e7d4e97ae31ade7a1bfa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GameUI
-  puzzleManager: {fileID: 1769530782}
-  playerHealth: {fileID: 2035326336}
-  pausePanel: {fileID: 1464546724}
-  restartPanel: {fileID: 1750151718}
-  levelCompletePanel: {fileID: 930933393}
-  nextLevelButton: {fileID: 79184259}
-  pauseAction: {fileID: 8120728088994939123, guid: 052faaac586de48259a63d0c4782560b, type: 3}
 --- !u!4 &339565078
 Transform:
   m_ObjectHideFlags: 0
@@ -2079,7 +2059,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 339565077}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: GameUI, Assembly-CSharp
         m_MethodName: MainMenu
         m_Mode: 1
@@ -3157,7 +3137,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 339565077}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: GameUI, Assembly-CSharp
         m_MethodName: OnRestartClicked
         m_Mode: 1
@@ -3658,7 +3638,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 339565077}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: GameUI, Assembly-CSharp
         m_MethodName: MainMenu
         m_Mode: 1
@@ -4127,7 +4107,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 26.159973, y: 22.75}
+  m_AnchoredPosition: {x: 26.159912, y: 22.75}
   m_SizeDelta: {x: 515, y: 55}
   m_Pivot: {x: 0, y: 0}
 --- !u!114 &738334894
@@ -5286,6 +5266,81 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d45b74f4c38504f4ebea5f627ec1cd0c, type: 3}
   m_PrefabInstance: {fileID: 994007596}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1025338254
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1025338256}
+  - component: {fileID: 1025338255}
+  m_Layer: 0
+  m_Name: HarvestCam
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1025338255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1025338254}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+  Priority:
+    Enabled: 1
+    m_Value: 20
+  OutputChannel: 1
+  StandbyUpdate: 2
+  m_StreamingVersion: 20241001
+  m_LegacyPriority: 0
+  Target:
+    TrackingTarget: {fileID: 0}
+    LookAtTarget: {fileID: 0}
+    CustomLookAtTarget: 0
+  Lens:
+    FieldOfView: 60.000004
+    OrthographicSize: 5
+    NearClipPlane: 0.3
+    FarClipPlane: 1000
+    Dutch: 0
+    ModeOverride: 0
+    PhysicalProperties:
+      GateFit: 2
+      SensorSize: {x: 21.946, y: 16.002}
+      LensShift: {x: 0, y: 0}
+      FocusDistance: 10
+      Iso: 200
+      ShutterSpeed: 0.005
+      Aperture: 16
+      BladeCount: 5
+      Curvature: {x: 2, y: 11}
+      BarrelClipping: 0.25
+      Anamorphism: 0
+  BlendHint: 0
+--- !u!4 &1025338256
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1025338254}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.20083281, y: -0.0038238813, z: 0.00078176404, w: -0.9796178}
+  m_LocalPosition: {x: 47.230637, y: 14.614125, z: 23.163836}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1027041506
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5492,7 +5547,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 339565077}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: GameUI, Assembly-CSharp
         m_MethodName: OnRestartClicked
         m_Mode: 1
@@ -5672,6 +5727,11 @@ VideoPlayer:
   m_WaitForFirstFrame: 1
   m_FrameReadyEventEnabled: 0
   m_VideoShaders: []
+--- !u!1 &1093484536 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 305086622002752460, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+  m_PrefabInstance: {fileID: 1300670861}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1098283373 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d45b74f4c38504f4ebea5f627ec1cd0c, type: 3}
@@ -6399,6 +6459,63 @@ Transform:
   - {fileID: 1090691658}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1300670861
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3634870412126767588, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 824
+      objectReference: {fileID: 0}
+    - target: {fileID: 3634870412126767588, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.00001
+      objectReference: {fileID: 0}
+    - target: {fileID: 3634870412126767588, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -198.11421
+      objectReference: {fileID: 0}
+    - target: {fileID: 3634870412126767588, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3634870412126767588, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3634870412126767588, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3634870412126767588, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3634870412126767588, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3634870412126767588, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3634870412126767588, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4123740132200452958, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+      propertyPath: m_Name
+      value: Farm plants all
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
 --- !u!1001 &1357226676
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6794,7 +6911,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 339565077}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: GameUI, Assembly-CSharp
         m_MethodName: OnResumeClicked
         m_Mode: 1
@@ -8848,7 +8965,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 339565077}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: GameUI, Assembly-CSharp
         m_MethodName: MainMenu
         m_Mode: 1
@@ -8969,7 +9086,7 @@ MonoBehaviour:
     bossSpawnPoint: {fileID: 0}
     reinforcementPrefab: {fileID: 0}
     reinforcementInterval: 6
-  - gridSize: 4
+  - gridSize: 3
     alienPrefabs:
     - {fileID: 173435920081290131, guid: 177a138f957b93747ba7f25028e162de, type: 3}
     - {fileID: 7514936547686933455, guid: cc5b7b732bb078b48bc0094c8d488bcf, type: 3}
@@ -8986,6 +9103,9 @@ MonoBehaviour:
   tileImagePrefab: {fileID: 6234151529809476254, guid: 623b8dd5e9136e3419c6e52ce2b8a29e, type: 3}
   straightSprite: {fileID: 21300000, guid: 1b8dfda8468ea2347b1454944a037dfe, type: 3}
   elbowSprite: {fileID: 21300000, guid: c63b348ace9547548ae494e0e789b86b, type: 3}
+  tileGap: 20
+  harvestCutscene: {fileID: 2035326337}
+  deathPause: 3
   entryDirection: 3
   exitDirection: 1
   player: {fileID: 2035326332}
@@ -9188,6 +9308,11 @@ Transform:
   - {fileID: 1647607967}
   m_Father: {fileID: 499593768}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1813094543 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9125662989717210394, guid: f428f9224b14d5549966d2f6c1544aa7, type: 3}
+  m_PrefabInstance: {fileID: 1300670861}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1822128202
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9543,6 +9668,8 @@ GameObject:
   - component: {fileID: 2035326334}
   - component: {fileID: 2035326335}
   - component: {fileID: 2035326336}
+  - component: {fileID: 2035326338}
+  - component: {fileID: 2035326337}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -9677,6 +9804,56 @@ MonoBehaviour:
   damageFlash: {fileID: 489104234}
   flashAlpha: 0.4
   flashFadeSpeed: 1.5
+--- !u!114 &2035326337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2035326330}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c5c52966b304314288e2d60e9ba634c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HarvestCutscene
+  cutsceneCamera: {fileID: 1025338254}
+  orbitTime: 7
+  orbitAngle: 300
+  extraDistance: 6
+  height: 6
+  blendTime: 1.5
+  cropPrefabs:
+  - {fileID: 1813094543}
+  - {fileID: 1093484536}
+  cropsPerPlot: 3
+  plotSize: 2
+  groundOffset: 0
+  riseDepth: 1.5
+  riseTime: 1.2
+  riseSpread: 3
+  cropScale: {x: 0.8, y: 1.2}
+  disableDuringCutscene:
+  - {fileID: 499593771}
+  hideDuringCutscene: []
+--- !u!114 &2035326338
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2035326330}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79b92b8bf939e7d4e97ae31ade7a1bfa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameUI
+  puzzleManager: {fileID: 1769530782}
+  playerHealth: {fileID: 2035326336}
+  pausePanel: {fileID: 1464546724}
+  restartPanel: {fileID: 1750151718}
+  levelCompletePanel: {fileID: 930933393}
+  nextLevelButton: {fileID: 79184259}
+  pauseAction: {fileID: 8120728088994939123, guid: 052faaac586de48259a63d0c4782560b, type: 3}
 --- !u!1001 &2045893920
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10024,7 +10201,9 @@ SceneRoots:
   - {fileID: 303297251}
   - {fileID: 616837754}
   - {fileID: 1277976583}
+  - {fileID: 1300670861}
   - {fileID: 40490832}
   - {fileID: 338946141}
   - {fileID: 926743950}
   - {fileID: 626783574}
+  - {fileID: 1025338256}

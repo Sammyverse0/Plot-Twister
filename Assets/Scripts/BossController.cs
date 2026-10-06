@@ -55,6 +55,7 @@ public class BossController : MonoBehaviour
     [SerializeField] private float poundWindup = 0.5f;
     [SerializeField] private float jumpTime = 1.1f;
     [SerializeField] private float jumpHeight = 5f;
+    [SerializeField] private float maxJumpDistance = 15f;
     [SerializeField] private float poundDamage = 40f;
     [SerializeField] private float poundRadius = 4f;
     [SerializeField] private float poundRecover = 1f;
@@ -86,6 +87,7 @@ public class BossController : MonoBehaviour
     private float nextAttackTime;
     private int lastSpecial = -1;
     private bool dead;
+    private bool playerDown;
     private GameObject marker;
 
     private void Awake()
@@ -159,6 +161,24 @@ public class BossController : MonoBehaviour
         }
     }
 
+    private void Update()
+    {
+        if (dead || playerDown || playerHealth == null || !playerHealth.IsDead) return;
+
+        playerDown = true;
+        StopAllCoroutines();
+        StopEverything();
+    }
+
+    private void StopEverything()
+    {
+        SetRunning(false);
+        if (anim != null) anim.SetBool(SpinHash, false);
+        if (marker != null) Destroy(marker);
+        StopLoop();
+        StopSound();
+    }
+
     private int PickSpecial()
     {
         int special = Random.Range(0, 3);
@@ -195,6 +215,7 @@ public class BossController : MonoBehaviour
 
         yield return new WaitForSeconds(Mathf.Max(0f, attackTime - attackHitDelay));
 
+        StopSound();
         nextAttackTime = Time.time + attackCooldown;
     }
 
@@ -220,6 +241,7 @@ public class BossController : MonoBehaviour
 
         if (anim != null) anim.SetBool(SpinHash, false);
         StopLoop();
+        StopSound();
     }
 
     private IEnumerator Dash()
@@ -297,6 +319,8 @@ public class BossController : MonoBehaviour
 
         float wait = summon ? roarTime : introTime;
         if (time < wait) yield return new WaitForSeconds(wait - time);
+
+        StopSound();
     }
 
     private void SpawnUfo(int index)
@@ -317,7 +341,8 @@ public class BossController : MonoBehaviour
     private IEnumerator GroundPound()
     {
         Vector3 start = transform.position;
-        Vector3 land = ClampToArena(target.position);
+        Vector3 toPlayer = Flat(target.position - start);
+        Vector3 land = start + Vector3.ClampMagnitude(toPlayer, maxJumpDistance);
         land.y = GroundHeight(land);
 
         FaceTowards(land, true);
@@ -346,6 +371,7 @@ public class BossController : MonoBehaviour
         Land(land);
 
         yield return new WaitForSeconds(poundRecover);
+        StopSound();
     }
 
     private void Land(Vector3 land)
@@ -374,16 +400,10 @@ public class BossController : MonoBehaviour
     {
         dead = true;
         StopAllCoroutines();
+        StopEverything();
 
-        SetRunning(false);
-        if (marker != null) Destroy(marker);
-        StopLoop();
-
-        if (anim != null)
-        {
-            anim.SetBool(SpinHash, false);
-            if (HasParameter(DieHash)) anim.SetTrigger(DieHash);
-        }
+        if (anim != null && HasParameter(DieHash))
+            anim.SetTrigger(DieHash);
     }
 
     private bool PlayerInRange(float range)
@@ -457,7 +477,17 @@ public class BossController : MonoBehaviour
 
     private void PlaySound(AudioClip clip)
     {
-        if (voice != null && clip != null) voice.PlayOneShot(clip);
+        if (voice == null || clip == null) return;
+
+        voice.Stop();
+        voice.clip = clip;
+        voice.loop = false;
+        voice.Play();
+    }
+
+    private void StopSound()
+    {
+        if (voice != null) voice.Stop();
     }
 
     private void PlayLoop(AudioClip clip)

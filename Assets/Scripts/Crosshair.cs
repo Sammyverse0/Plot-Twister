@@ -21,11 +21,13 @@ public class Crosshair : MonoBehaviour
     [SerializeField] private bool showDot = false;
 
     private RectTransform canvasRect;
+    private Canvas canvas;
     private Camera cam;
 
     private void Start()
     {
-        canvasRect = GetComponentInParent<Canvas>().rootCanvas.GetComponent<RectTransform>();
+        canvas = GetComponentInParent<Canvas>().rootCanvas;
+        canvasRect = canvas.GetComponent<RectTransform>();
         cam = Camera.main;
 
         SetupLine(top, new Vector2(thickness, lineLength));
@@ -56,6 +58,12 @@ public class Crosshair : MonoBehaviour
 
     private void LateUpdate()
     {
+        float thick = Mathf.Max(thickness, 1.5f / Mathf.Max(canvas.scaleFactor, 0.01f));
+        if (top != null) top.sizeDelta = new Vector2(thick, lineLength);
+        if (bottom != null) bottom.sizeDelta = new Vector2(thick, lineLength);
+        if (left != null) left.sizeDelta = new Vector2(lineLength, thick);
+        if (right != null) right.sizeDelta = new Vector2(lineLength, thick);
+
         float gap = minGap + SpreadToPixels();
         float offset = gap + lineLength / 2f;
 

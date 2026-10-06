@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -40,6 +41,15 @@ public class PuzzleManager : MonoBehaviour
     [SerializeField] private RectTransform tileImagePrefab;
     [SerializeField] private Sprite straightSprite;
     [SerializeField] private Sprite elbowSprite;
+    [SerializeField] private float tileGap = 20f;
+    [SerializeField] private Sprite pipeStartSprite;
+    [SerializeField] private Sprite pipeEndSprite;
+    [SerializeField] private float endPipeSize = 1f;
+    [SerializeField] private float endPipeOverlap = 0f;
+
+    [Header("Level Complete")]
+    [SerializeField] private HarvestCutscene harvestCutscene;
+    [SerializeField] private float deathPause = 3f;
 
     [Header("Win Condition")]
     [SerializeField] private Direction entryDirection = Direction.West;
@@ -65,6 +75,9 @@ public class PuzzleManager : MonoBehaviour
     private int _aliveHeavies;
     private float _nextReinforcement;
     private bool _solved;
+    private bool _completing;
+    private RectTransform _startPipe;
+    private RectTransform _endPipe;
 
     private PlayerHealth _playerHealth;
     private CharacterController _playerController;
@@ -85,6 +98,12 @@ public class PuzzleManager : MonoBehaviour
             player.TryGetComponent(out _playerController);
             player.TryGetComponent(out _playerHealth);
         }
+
+        if (_playerHealth != null)
+            _playerHealth.OnDeath += StopCombatMusic;
+
+        _startPipe = MakeEndPipe("Pipe Start", pipeStartSprite, new Vector2(1f, 0.5f));
+        _endPipe = MakeEndPipe("Pipe End", pipeEndSprite, new Vector2(0f, 0.5f));
 
         if (endingCutscenePanel != null)
             endingCutscenePanel.SetActive(false);
@@ -132,10 +151,14 @@ public class PuzzleManager : MonoBehaviour
         tileGrid.childAlignment = TextAnchor.MiddleCenter;
 
         RectTransform gridRect = tileGrid.GetComponent<RectTransform>();
-        float cellWidth = (gridRect.rect.width - tileGrid.spacing.x * (gridSize - 1)) / gridSize;
-        float cellHeight = (gridRect.rect.height - tileGrid.spacing.y * (gridSize - 1)) / gridSize;
+        RectOffset padding = tileGrid.padding;
+        float width = gridRect.rect.width - padding.left - padding.right;
+        float height = gridRect.rect.height - padding.top - padding.bottom;
+        float cellWidth = (width - tileGap * (gridSize - 1)) / gridSize;
+        float cellHeight = (height - tileGap * (gridSize - 1)) / gridSize;
         float cell = Mathf.Min(cellWidth, cellHeight);
         tileGrid.cellSize = new Vector2(cell, cell);
+        tileGrid.spacing = new Vector2(tileGap, tileGap);
 
         Dictionary<Vector2Int, (PipeShape shape, int rotation)> solution = GenerateSolvablePath();
 
@@ -200,6 +223,11 @@ public class PuzzleManager : MonoBehaviour
         _aliveAliens = 0;
         _aliveHeavies = 0;
         _solved = false;
+        _completing = false;
+
+        StopAllCoroutines();
+        StopCombatMusic();
+        if (harvestCutscene != null) harvestCutscene.ClearCrops();
     }
 
     private void ResetPlayer()
@@ -296,7 +324,12 @@ public class PuzzleManager : MonoBehaviour
 
     private void Update()
     {
-        if (uiPanel.activeSelf) SyncTiles();
+        if (uiPanel.activeSelf)
+        {
+            SyncTiles();
+            PlaceLabels();
+        }
+
         HandleReinforcements();
     }
 
@@ -313,6 +346,49 @@ public class PuzzleManager : MonoBehaviour
             SpawnEnemy(level.reinforcementPrefab, RandomPlotPosition());
     }
 
+    private RectTransform MakeEndPipe(string pipeName, Sprite sprite, Vector2 pivot)
+    {
+        if (sprite == null) return null;
+
+        GameObject pipe = new GameObject(pipeName, typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+        pipe.transform.SetParent(tileGrid.transform, false);
+        pipe.GetComponent<LayoutElement>().ignoreLayout = true;
+
+        Image image = pipe.GetComponent<Image>();
+        image.sprite = sprite;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+
+        RectTransform rect = pipe.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = pivot;
+        return rect;
+    }
+
+    private void PlaceLabels()
+    {
+        if (_tileImages.Count == 0) return;
+
+        PlaceEndPipe(_startPipe, _tileImages[0], -1f);
+        PlaceEndPipe(_endPipe, _tileImages[_tileImages.Count - 1], 1f);
+    }
+
+    private void PlaceEndPipe(RectTransform pipe, RectTransform tile, float side)
+    {
+        if (pipe == null || tile == null) return;
+
+        Sprite sprite = pipe.GetComponent<Image>().sprite;
+        float height = tile.rect.height * endPipeSize;
+        float width = height * sprite.rect.width / sprite.rect.height;
+        pipe.sizeDelta = new Vector2(width, height);
+
+        Transform grid = tileGrid.transform;
+        float edge = (tile.rect.width * 0.5f - endPipeOverlap) * grid.lossyScale.x;
+        pipe.position = tile.position + grid.right * (side * edge);
+        pipe.SetAsLastSibling();
+    }
+
     private void SyncTiles()
     {
         for (int i = 0; i < _plots.Count; i++)
@@ -327,6 +403,10 @@ public class PuzzleManager : MonoBehaviour
         {
             _solved = true;
             Debug.Log("Puzzle solved!");
+
+            for (int i = 0; i < _plots.Count; i++)
+                _plots[i].Water(i * 0.08f);
+
             SpawnAliens();
         }
     }
@@ -523,10 +603,26 @@ public class PuzzleManager : MonoBehaviour
 
     private void CompleteLevel()
     {
-        if (_playerHealth != null && _playerHealth.IsDead)
-            return;
+        if (_completing) return;
+        if (_playerHealth != null && _playerHealth.IsDead) return;
 
+        _completing = true;
+        StartCoroutine(CompleteRoutine());
+    }
+
+    private IEnumerator CompleteRoutine()
+    {
         StopCombatMusic();
+
+        foreach (UfoMissile ufo in FindObjectsByType<UfoMissile>(FindObjectsSortMode.None))
+            Destroy(ufo.gameObject);
+
+        yield return new WaitForSeconds(deathPause);
+
+        if (_playerHealth != null && _playerHealth.IsDead) yield break;
+
+        if (harvestCutscene != null)
+            yield return harvestCutscene.Play(_plots);
 
         OnLevelCompleted?.Invoke(_currentLevel);
 

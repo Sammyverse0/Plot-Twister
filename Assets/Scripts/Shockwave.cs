@@ -1,6 +1,5 @@
 using UnityEngine;
 
-[RequireComponent(typeof(LineRenderer))]
 public class Shockwave : MonoBehaviour
 {
     [SerializeField] private float maxRadius = 14f;
@@ -12,6 +11,10 @@ public class Shockwave : MonoBehaviour
     [SerializeField] private float jumpClearance = 0.4f;
     [SerializeField] private int points = 64;
 
+    [Header("Model")]
+    [SerializeField] private Transform ringModel;
+    [SerializeField] private float modelRadius = 0.5f;
+
     private LineRenderer line;
     private float radius;
     private bool hasHit;
@@ -19,17 +22,46 @@ public class Shockwave : MonoBehaviour
     private FPSMovement playerMovement;
     private CharacterController playerBody;
     private float groundY;
+    private Renderer[] modelParts;
+    private Color[] modelColors;
+    private MaterialPropertyBlock block;
+    private Vector3 modelScale;
+
+    private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
     private void Awake()
     {
         line = GetComponent<LineRenderer>();
-        line.loop = true;
-        line.useWorldSpace = true;
-        line.positionCount = points;
-        line.widthMultiplier = ringWidth;
 
-        if (line.sharedMaterial == null)
-            line.material = new Material(Shader.Find("Sprites/Default"));
+        if (ringModel != null && line != null)
+            line.enabled = false;
+
+        if (line != null && line.enabled)
+        {
+            line.loop = true;
+            line.useWorldSpace = true;
+            line.positionCount = points;
+            line.widthMultiplier = ringWidth;
+
+            if (line.sharedMaterial == null)
+                line.material = new Material(Shader.Find("Sprites/Default"));
+        }
+
+        if (ringModel != null)
+        {
+            block = new MaterialPropertyBlock();
+            modelParts = ringModel.GetComponentsInChildren<Renderer>();
+            modelColors = new Color[modelParts.Length];
+
+            for (int i = 0; i < modelParts.Length; i++)
+            {
+                Material mat = modelParts[i].sharedMaterial;
+                modelColors[i] = mat != null && mat.HasProperty(BaseColor) ? mat.GetColor(BaseColor) : Color.white;
+            }
+
+            modelScale = ringModel.localScale;
+            ringModel.localScale = new Vector3(0f, modelScale.y, 0f);
+        }
 
         playerHealth = FindFirstObjectByType<PlayerHealth>();
         if (playerHealth != null)
@@ -51,17 +83,37 @@ public class Shockwave : MonoBehaviour
             return;
         }
 
-        DrawRing();
-        CheckPlayer();
+        float fade = 1f - radius / maxRadius;
 
-        Color color = line.startColor;
-        color.a = 1f - radius / maxRadius;
-        line.startColor = color;
-        line.endColor = color;
+        if (ringModel != null) UpdateModel(fade);
+        else if (line != null) DrawRing(fade);
+
+        CheckPlayer();
     }
 
-    private void DrawRing()
+    private void UpdateModel(float fade)
     {
+        float size = radius / modelRadius;
+        ringModel.localScale = new Vector3(modelScale.x * size, modelScale.y, modelScale.z * size);
+
+        for (int i = 0; i < modelParts.Length; i++)
+        {
+            Color color = modelColors[i];
+            color.a *= fade;
+
+            modelParts[i].GetPropertyBlock(block);
+            block.SetColor(BaseColor, color);
+            modelParts[i].SetPropertyBlock(block);
+        }
+    }
+
+    private void DrawRing(float fade)
+    {
+        Color color = line.startColor;
+        color.a = fade;
+        line.startColor = color;
+        line.endColor = color;
+
         Vector3 center = transform.position;
 
         for (int i = 0; i < points; i++)

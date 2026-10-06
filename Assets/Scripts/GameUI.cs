@@ -51,7 +51,7 @@ public class GameUI : MonoBehaviour
 
     private void Start()
     {
-        HidePanels();
+        TurnOffPanels();
     }
 
     private void OnPausePerformed(InputAction.CallbackContext context)
@@ -114,7 +114,7 @@ public class GameUI : MonoBehaviour
         Cursor.visible = true;
     }
 
-    private void HidePanels()
+    private void TurnOffPanels()
     {
         if (pausePanel != null)
             pausePanel.SetActive(false);
@@ -124,6 +124,11 @@ public class GameUI : MonoBehaviour
 
         if (levelCompletePanel != null)
             levelCompletePanel.SetActive(false);
+    }
+
+    private void HidePanels()
+    {
+        TurnOffPanels();
 
         Time.timeScale = 1f;
         Cursor.lockState = CursorLockMode.Locked;
