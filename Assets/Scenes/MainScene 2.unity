@@ -9134,7 +9134,7 @@ MonoBehaviour:
   exitDirection: 1
   player: {fileID: 2035326332}
   maxAliveEnemies: 10
-  basicAlienPrefab: {fileID: 919132149155446097, guid: d8cb9356a50b0a74bba5dbe0b97c6643, type: 3}
+  basicAlienPrefab: {fileID: 0}
   reinforcementCount: {x: 3, y: 4}
   reinforcementDelay: {x: 5, y: 10}
   maxBasicAliens: 10
@@ -9891,6 +9891,7 @@ MonoBehaviour:
   cropPrefabs:
   - {fileID: 1813094543}
   - {fileID: 1093484536}
+  - {fileID: 919132149155446097, guid: 4113c57c6e17eb4408eb7bbdfe70bccf, type: 3}
   rowsPerPlot: 5
   cropsPerRow: 5
   edgeMargin: 0.12
