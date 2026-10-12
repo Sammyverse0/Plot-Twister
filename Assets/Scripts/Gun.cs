@@ -26,11 +26,24 @@ public class Gun : MonoBehaviour
     [Header("References")]
     [SerializeField] private GameObject bullet;
     [SerializeField] private Transform bulletSpawnPoint;
+    [SerializeField] private Transform shell;
+
+    [Header("Shell Animation")]
+    [SerializeField] private float shellMoveDistance = 0.05f;
+    [SerializeField] private float shellMoveDuration = 0.2f;
+
+    private Vector3 _shellInitialPos;
+    private Coroutine _shellRoutine;
 
     [Header("Audio")]
     [SerializeField] private AudioSource gunshotSource;
     [SerializeField] private AudioClip gunshotClip;
 
+    [Header("Reload")]
+    [SerializeField] private bool useCodeReloadRotation = true; 
+    [SerializeField] private bool useReloadAnimator = true;    
+    [SerializeField] private Animator reloadAnimator;
+    [SerializeField] private string reloadTrigger = "Reload";
     public int _currentAmmo;
     private bool _isReloading = false;
     private float _nextTimeToFire = 0f;
@@ -60,6 +73,8 @@ public class Gun : MonoBehaviour
         _player = GetComponentInParent<FPSMovement>();
         _cameraShake = GetComponentInParent<CameraShake>();
         _cam = Camera.main;
+        if (shell != null)
+            _shellInitialPos = shell.localPosition;
     }
 
     private void Update()
@@ -112,6 +127,9 @@ public class Gun : MonoBehaviour
 
         _currentAmmo--;
         _recoil = 1f;
+        if (shell != null){
+            if (_shellRoutine != null) StopCoroutine(_shellRoutine);
+            _shellRoutine = StartCoroutine(ShellSlide());}
 
         if (gunshotSource != null && gunshotClip != null)
             gunshotSource.PlayOneShot(gunshotClip);
@@ -132,61 +150,64 @@ public class Gun : MonoBehaviour
         RaycastHit[] hits = Physics.RaycastAll(camTransform.position, aimDir, 200f, ~0, QueryTriggerInteraction.Ignore);
         float closest = float.MaxValue;
 
-        foreach (RaycastHit hit in hits)
-        {
+        foreach (RaycastHit hit in hits){
             if (hit.collider.GetComponentInParent<CharacterController>() != null) continue;
-            if (hit.distance < closest)
-            {
+            if (hit.distance < closest){
                 closest = hit.distance;
-                target = hit.point;
-            }
-        }
+                target = hit.point;}}
+        return (target - bulletSpawnPoint.position).normalized;}
 
-        return (target - bulletSpawnPoint.position).normalized;
-    }
-
-    private void IgnoreShooterCollisions(GameObject newBullet)
-    {
+    private void IgnoreShooterCollisions(GameObject newBullet){
         Collider bulletCollider = newBullet.GetComponentInChildren<Collider>();
         if (bulletCollider == null) return;
 
         foreach (Collider shooterCollider in _shooterColliders)
-            Physics.IgnoreCollision(bulletCollider, shooterCollider);
-    }
+            Physics.IgnoreCollision(bulletCollider, shooterCollider);}
 
-    IEnumerator Reload()
-    {
+    public void TryReloading(){
+        if (_isReloading || _currentAmmo == magSize)
+            return;
+        StartCoroutine(Reload());}
+        
+    private IEnumerator ShellSlide(){
+    float t = 0f;
+    while (t < shellMoveDuration){
+        t += Time.deltaTime;
+        float k = Mathf.Sin(Mathf.Clamp01(t / shellMoveDuration) * Mathf.PI); // 0 -> 1 -> 0
+        Vector3 pos = _shellInitialPos;
+        pos.x += shellMoveDistance * k;
+        shell.localPosition = pos;
+        yield return null;}
+
+    shell.localPosition = _shellInitialPos;
+    _shellRoutine = null;}    
+    
+    IEnumerator Reload(){
         _isReloading = true;
         Debug.Log("Reloading...");
         transform.localPosition = initialPosition;
-        Quaternion targetRotation = Quaternion.Euler(initialRotation.eulerAngles + reloadRotationOffset);
-        float halfReloadTime = reloadTime / 2f;
-        float t = 0f;
-        while (t < halfReloadTime)
-        {
-            t += Time.deltaTime;
-            transform.localRotation = Quaternion.Slerp(initialRotation, targetRotation, t / halfReloadTime);
-            yield return null;
-        }
 
-        t = 0f;
+        if (useReloadAnimator && reloadAnimator != null)
+            reloadAnimator.SetTrigger(reloadTrigger);
 
-        while (t < halfReloadTime)
-        {
-            t += Time.deltaTime;
-            transform.localRotation = Quaternion.Slerp(targetRotation, initialRotation, t / halfReloadTime);
-            yield return null;
-        }
+        if (useCodeReloadRotation){
+            Quaternion targetRotation = Quaternion.Euler(initialRotation.eulerAngles + reloadRotationOffset);
+            float halfReloadTime = reloadTime / 2f;
+            float t = 0f;
+            while (t < halfReloadTime){
+                t += Time.deltaTime;
+                transform.localRotation = Quaternion.Slerp(initialRotation, targetRotation, t / halfReloadTime);
+                yield return null;}
+
+            t = 0f;
+            while (t < halfReloadTime){
+                t += Time.deltaTime;
+                transform.localRotation = Quaternion.Slerp(targetRotation, initialRotation, t / halfReloadTime);
+                yield return null;}}
+        else{
+            yield return new WaitForSeconds(reloadTime);}
 
         _currentAmmo = magSize;
         _recoil = 0f;
-        _isReloading = false;
-    }
-
-    public void TryReloading()
-    {
-        if (_isReloading || _currentAmmo == magSize)
-            return;
-        StartCoroutine(Reload());
-    }
+        _isReloading = false;}    
 }
