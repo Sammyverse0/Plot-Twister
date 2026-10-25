@@ -177,10 +177,39 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8291320080218907885, guid: 177a138f957b93747ba7f25028e162de, type: 3}
       insertIndex: 0
       addedObject: {fileID: 7137726199097333673}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 173435920081290131, guid: 177a138f957b93747ba7f25028e162de, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -3778729557723792934}
   m_SourcePrefab: {fileID: 100100000, guid: 177a138f957b93747ba7f25028e162de, type: 3}
 --- !u!4 &1815775672401200305 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8291320080218907885, guid: 177a138f957b93747ba7f25028e162de, type: 3}
   m_PrefabInstance: {fileID: 7647747640130003036}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &7514936547686933455 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 173435920081290131, guid: 177a138f957b93747ba7f25028e162de, type: 3}
+  m_PrefabInstance: {fileID: 7647747640130003036}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &-3778729557723792934
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7514936547686933455}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c75121e94d270c14584d9785a50e49cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  potionPrefab: {fileID: 2767273331495172639, guid: 0c1ff2977e4b59349bc249d2841d5dd6, type: 3}
+  throwPoint: {fileID: 8640477815433995796, guid: 856bd81cecb7a55408834c0b4c1511a6, type: 3}
+  minRange: 6
+  maxRange: 18
+  cooldown: 6
+  windUp: 0.6
+  recover: 1
+  flightTime: 1
+  aimError: 0.6
