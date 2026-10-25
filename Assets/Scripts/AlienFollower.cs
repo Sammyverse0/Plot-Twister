@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
+public enum MoveStyle
+{Chase,Ambush,Flank,Kite}
+
 public class AlienFollower : MonoBehaviour
 {
     public Transform target;
@@ -14,6 +17,25 @@ public class AlienFollower : MonoBehaviour
     [SerializeField] private string riseStateName = "Stand up";
     [SerializeField] private float hitStunTime = 0.4f;
 
+    [Header("Movement Style")]
+    [SerializeField] private MoveStyle moveStyle = MoveStyle.Chase;
+
+    [Header("Ambush")]
+    [SerializeField] private float leadTime = 1.2f;
+    [SerializeField] private float commitDistance = 5f;
+    [SerializeField] private float weaveWidth = 2.5f;
+    [SerializeField] private float weaveSpeed = 2.2f;
+
+    [Header("Flank")]
+    [SerializeField] private float flankRadius = 6f;
+    [SerializeField] private float flankCommitDistance = 3.5f;
+    [SerializeField, Range(0f, 1f)] private float skittishChance = 0.25f;
+    [SerializeField] private float skittishRange = 5f;
+
+    [Header("Kite")]
+    [SerializeField] private float kiteDistance = 11f;
+    [SerializeField] private float kiteTolerance = 2.5f;
+
     [Header("Sound")]
     [SerializeField] private AudioClip riseSound;
     [SerializeField] private float riseVolume = 1f;
@@ -21,10 +43,13 @@ public class AlienFollower : MonoBehaviour
     [Header("Ground")]
     [SerializeField] private bool snapToGround;
     [SerializeField] private float groundOffset;
-    
+
     [Header("Separation")]
     [SerializeField] private float separationRadius = 1.2f;
     [SerializeField] private float separationWeight = 1.5f;
+
+    [Header("Crawl")]
+    [SerializeField] private bool canCrawl;
 
     private static readonly List<AlienFollower> All = new();
     private static readonly int IsWalkingHash = Animator.StringToHash("IsWalking");
@@ -41,15 +66,41 @@ public class AlienFollower : MonoBehaviour
     private bool _isCrawling;
     private bool _isDead;
 
+    private Vector3 _targetVelocity;
+    private Vector3 _lastTargetPos;
+    private bool _hasLastTargetPos;
+    private float _arriveRadius;
+    private float _weaveSeed;
+
+    private bool _flankReady;
+    private bool _flankCommitted;
+    private float _flankBearing;
+    private float _flankOffset;
+    private bool _skittish;
+    private float _retreatUntil;
+    private float _skittishReady;
+
+    private float _strafeSign = 1f;
+    private float _nextStrafeFlip;
+
     public bool IsAwake => !_isDead && !_isRising;
+    public bool IsRising => !_isDead && _isRising;
     public bool IsDead => _isDead;
     public bool IsCrawling => _isCrawling;
+    public bool CanCrawl => canCrawl;
 
     private void Awake()
     {
         TryGetComponent(out _agent);
         _animator = GetComponentInChildren<Animator>();
         _wakeTime = Time.time + standUpDuration;
+
+        _weaveSeed = Random.value * 10f;
+        _flankOffset = RollFlankOffset();
+        _skittish = Random.value < skittishChance;
+        _strafeSign = Random.value < 0.5f ? -1f : 1f;
+        _nextStrafeFlip = Time.time + Random.Range(2f, 4f);
+
         ApplyAgentSettings();
     }
 
@@ -74,9 +125,11 @@ public class AlienFollower : MonoBehaviour
     public void SetTarget(Transform newTarget)
     {
         target = newTarget;
+        _hasLastTargetPos = false;
         ApplyAgentSettings();
     }
-        public void HoldFor(float seconds)
+
+    public void HoldFor(float seconds)
     {
         _stunnedUntil = Mathf.Max(_stunnedUntil, Time.time + seconds);
     }
@@ -90,40 +143,35 @@ public class AlienFollower : MonoBehaviour
         _agent.stoppingDistance = stopDistance;
     }
 
-    private void SnapToGround()
+    private static float RollFlankOffset()
     {
-        if (!snapToGround) return;
-
-        RaycastHit[] hits = Physics.RaycastAll(
-            transform.position + Vector3.up, Vector3.down, 20f, ~0, QueryTriggerInteraction.Ignore);
-
-        float best = float.MaxValue;
-        float groundY = transform.position.y;
-
-        foreach (RaycastHit hit in hits)
-        {
-            if (hit.transform.IsChildOf(transform)) continue;
-            if (hit.collider.GetComponentInParent<PlayerHealth>() != null) continue;
-            if (hit.collider.GetComponentInParent<EnemyHealth>() != null) continue;
-            if (hit.distance >= best) continue;
-
-            best = hit.distance;
-            groundY = hit.point.y;
-        }
-
-        Vector3 pos = transform.position;
-        pos.y = Mathf.MoveTowards(pos.y, groundY + groundOffset, 10f * Time.deltaTime);
-        transform.position = pos;
+        float roll = Random.value;
+        if (roll < 0.4f) return Random.Range(65f, 115f);
+        if (roll < 0.8f) return -Random.Range(65f, 115f);
+        return 180f + Random.Range(-20f, 20f);
     }
+
     public void StartCrawling()
     {
+        if (!canCrawl || _isCrawling || !IsAwake) return;
         if (_isCrawling || !IsAwake) return;
 
         _isCrawling = true;
         if (_animator != null) _animator.SetBool(IsCrawlingHash, true);
         ApplyAgentSettings();
     }
+    public static bool AnyRisingNear(Vector3 point, float range)
+    {
+        foreach (AlienFollower alien in All)
+        {
+            if (!alien.IsRising) continue;
 
+            bool close = range <= 0f || (alien.transform.position - point).sqrMagnitude <= range * range;
+            if (close) return true;
+        }
+
+        return false;
+    }
     public void GetHit()
     {
         if (!IsAwake || _isCrawling) return;
@@ -163,39 +211,190 @@ public class AlienFollower : MonoBehaviour
         }
     }
 
+    private void SnapToGround()
+    {
+        RaycastHit[] hits = Physics.RaycastAll(
+            transform.position + Vector3.up, Vector3.down, 20f, ~0, QueryTriggerInteraction.Ignore);
+
+        float best = float.MaxValue;
+        float groundY = transform.position.y;
+
+        foreach (RaycastHit hit in hits)
+        {
+            if (hit.transform.IsChildOf(transform)) continue;
+            if (hit.collider.GetComponentInParent<PlayerHealth>() != null) continue;
+            if (hit.collider.GetComponentInParent<EnemyHealth>() != null) continue;
+            if (hit.distance >= best) continue;
+
+            best = hit.distance;
+            groundY = hit.point.y;
+        }
+
+        Vector3 pos = transform.position;
+        pos.y = Mathf.MoveTowards(pos.y, groundY + groundOffset, 10f * Time.deltaTime);
+        transform.position = pos;
+    }
+
+    private void TrackTarget()
+    {
+        if (!_hasLastTargetPos)
+        {
+            _lastTargetPos = target.position;
+            _hasLastTargetPos = true;
+            return;
+        }
+
+        Vector3 velocity = (target.position - _lastTargetPos) / Mathf.Max(Time.deltaTime, 0.0001f);
+        velocity.y = 0f;
+
+        _targetVelocity = Vector3.Lerp(_targetVelocity, velocity, 8f * Time.deltaTime);
+        _lastTargetPos = target.position;
+    }
+
+    private Vector3 PickGoal()
+    {
+        _arriveRadius = stopDistance;
+        Vector3 player = target.position;
+
+        if (_isCrawling) return player;
+
+        Vector3 flat = player - transform.position;
+        flat.y = 0f;
+        float distance = flat.magnitude;
+
+        return moveStyle switch
+        {
+            MoveStyle.Ambush => AmbushGoal(player, distance),
+            MoveStyle.Flank => FlankGoal(player, distance),
+            MoveStyle.Kite => KiteGoal(player, distance),
+            _ => player
+        };
+    }
+
+    private Vector3 AmbushGoal(Vector3 player, float distance)
+    {
+        if (distance < commitDistance) return player;
+
+        float lead = Mathf.Min(leadTime, distance / Mathf.Max(CurrentSpeed, 0.1f));
+        Vector3 ahead = player + _targetVelocity * lead;
+
+        Vector3 toAhead = ahead - transform.position;
+        toAhead.y = 0f;
+        if (toAhead.sqrMagnitude < 0.01f) return player;
+
+        Vector3 side = Vector3.Cross(Vector3.up, toAhead.normalized);
+        float fade = Mathf.Clamp01((distance - commitDistance) / 8f);
+        float weave = Mathf.Sin(Time.time * weaveSpeed + _weaveSeed) * weaveWidth * fade;
+
+        return ahead + side * weave;
+    }
+
+    private Vector3 FlankGoal(Vector3 player, float distance)
+    {
+        if (!_flankReady)
+        {
+            Vector3 fromPlayer = transform.position - player;
+            _flankBearing = Mathf.Atan2(fromPlayer.x, fromPlayer.z) * Mathf.Rad2Deg;
+            _flankReady = true;
+        }
+
+        if (_flankCommitted) return ChargeOrRetreat(player, distance);
+
+        Vector3 slot = player + Quaternion.Euler(0f, _flankBearing + _flankOffset, 0f) * Vector3.forward * flankRadius;
+
+        Vector3 toSlot = slot - transform.position;
+        toSlot.y = 0f;
+
+        if (distance < flankCommitDistance || toSlot.magnitude < 1.5f)
+            _flankCommitted = true;
+
+        _arriveRadius = 0.5f;
+        return slot;
+    }
+
+    private Vector3 ChargeOrRetreat(Vector3 player, float distance)
+    {
+        if (!_skittish) return player;
+
+        if (Time.time >= _skittishReady && distance < skittishRange)
+        {
+            _retreatUntil = Time.time + Random.Range(1.2f, 2f);
+            _skittishReady = _retreatUntil + Random.Range(3f, 5f);
+        }
+
+        if (Time.time >= _retreatUntil) return player;
+
+        Vector3 away = transform.position - player;
+        away.y = 0f;
+
+        _arriveRadius = 0.2f;
+        return transform.position + away.normalized * 5f;
+    }
+
+    private Vector3 KiteGoal(Vector3 player, float distance)
+    {
+        Vector3 away = transform.position - player;
+        away.y = 0f;
+        away = away.sqrMagnitude > 0.001f ? away.normalized : -transform.forward;
+
+        if (Time.time >= _nextStrafeFlip)
+        {
+            _strafeSign = -_strafeSign;
+            _nextStrafeFlip = Time.time + Random.Range(2f, 4f);
+        }
+
+        _arriveRadius = 0.3f;
+
+        if (distance > kiteDistance + kiteTolerance) return player + away * kiteDistance;
+        if (distance < kiteDistance - kiteTolerance) return transform.position + away * 5f;
+
+        Vector3 side = Vector3.Cross(Vector3.up, away) * _strafeSign;
+        return transform.position + side * 5f;
+    }
+
+    private Vector3 FacingDirection(Vector3 move, Vector3 toTarget)
+    {
+        bool faceMovement = moveStyle != MoveStyle.Chase && !_isCrawling && move.sqrMagnitude > 0.01f;
+        return faceMovement ? move : toTarget;
+    }
+
     private void Update()
     {
         if (snapToGround && !_isDead && (_agent == null || !_agent.enabled || !_agent.isOnNavMesh))
-        {
             SnapToGround();
-        }   
+
         if (_isRising) CheckRising();
-        if (target == null || !IsAwake) return;
+        if (target == null) return;
+
+        TrackTarget();
+        if (!IsAwake) return;
 
         bool stunned = Time.time < _stunnedUntil;
+        bool onNavMesh = _agent != null && _agent.enabled && _agent.isOnNavMesh;
 
-        if (_agent != null && _agent.enabled && _agent.isOnNavMesh)
-        {
-            _agent.isStopped = stunned;
-        }
-
+        if (onNavMesh) _agent.isStopped = stunned;
         if (stunned) return;
 
         if (_animator != null && !_animator.GetBool(IsWalkingHash))
             _animator.SetBool(IsWalkingHash, true);
 
-        if (_agent != null && _agent.enabled && _agent.isOnNavMesh)
+        Vector3 goal = PickGoal();
+
+        if (onNavMesh)
         {
-            _agent.SetDestination(target.position);
+            _agent.SetDestination(goal);
             return;
         }
+
+        Vector3 toGoal = goal - transform.position;
+        toGoal.y = 0f;
 
         Vector3 toTarget = target.position - transform.position;
         toTarget.y = 0f;
 
         Vector3 move = Vector3.zero;
-        if (toTarget.magnitude > stopDistance)
-            move += toTarget.normalized;
+        if (toGoal.magnitude > _arriveRadius)
+            move += toGoal.normalized;
         move += GetSeparation() * separationWeight;
 
         if (move.sqrMagnitude > 1f)
@@ -203,11 +402,12 @@ public class AlienFollower : MonoBehaviour
 
         transform.position += move * (CurrentSpeed * Time.deltaTime);
 
-        if (toTarget.sqrMagnitude > 0.0001f)
+        Vector3 face = FacingDirection(move, toTarget);
+        if (face.sqrMagnitude > 0.0001f)
         {
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
-                Quaternion.LookRotation(toTarget.normalized),
+                Quaternion.LookRotation(face.normalized),
                 turnSpeed * Time.deltaTime);
         }
     }

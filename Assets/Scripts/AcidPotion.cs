@@ -15,7 +15,8 @@ public class AcidPotion : MonoBehaviour
     private float _age;
     private bool _launched;
     private bool _landed;
-
+    public float PoolRadius => poolPrefab != null ? poolPrefab.FootprintRadius : 2.5f;
+    
     private void Awake()
     {
         if (TryGetComponent(out Rigidbody body)) body.isKinematic = true;
