@@ -29,6 +29,9 @@ public class FPSMovement : MonoBehaviour
     [SerializeField] private float refillDelay = 1f;
     [SerializeField] private float minStaminaToRun = 0.25f;
     [SerializeField] private Image staminaFill;
+    [SerializeField] private Image staminaIcon;
+    [SerializeField] private Color staminaColor = new Color(0.55f, 0.9f, 0.1f);
+    [SerializeField] private Color tiredColor = new Color(0.85f, 0.25f, 0.1f);
 
     [Header("Knockback")]
     [SerializeField] private float pushDrag = 4f;
@@ -193,10 +196,22 @@ public class FPSMovement : MonoBehaviour
         if (_tired && _stamina >= minStaminaToRun)
             _tired = false;
 
-        if (staminaFill != null)
-            staminaFill.fillAmount = _stamina;
+        UpdateStaminaBar();
     }
+    private void UpdateStaminaBar()
+    {
+        if (staminaFill != null)
+        {
+            staminaFill.fillAmount = _stamina;
+            staminaFill.color = _tired ? tiredColor : staminaColor;
+        }
 
+        if (staminaIcon == null) return;
+
+        float pulse = IsSprinting ? 1f + Mathf.Sin(Time.time * 18f) * 0.08f : 1f;
+        staminaIcon.rectTransform.localScale = Vector3.one * pulse;
+        staminaIcon.color = _tired ? tiredColor : Color.white;
+    }
     private void HandleMovement()
     {
         var move = cameraTransform.TransformDirection(new Vector3(_moveInput.x, 0, _moveInput.y));
