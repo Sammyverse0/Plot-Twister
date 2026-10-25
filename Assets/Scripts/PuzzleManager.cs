@@ -1,7 +1,8 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-
+using UnityEngine.Video;
 public enum Direction { North, East, South, West }
 
 [System.Serializable]
@@ -12,12 +13,24 @@ public class LevelData
     public GameObject bossPrefab;
     public Transform bossSpawnPoint;
     public GameObject reinforcementPrefab;
-    public float reinforcementInterval = 6f;
 }
 
 public class PuzzleManager : MonoBehaviour
 {
+    [Header("Level 1 Intro Panel")]
+    [SerializeField] private GameObject level1IntroPanel;
     public const string SaveKey = "SavedLevel";
+    [Header("Ending Cutscene")]
+    [SerializeField] private VideoPlayer endingCutscenePlayer;
+    [SerializeField] private GameObject endingCutscenePanel;
+    [SerializeField] private GameObject[] hideDuringEnding;
+    [SerializeField] private string sceneAfterEnding = "MainMenu";
+    [Header("Combat Music")]
+    [SerializeField] private AudioSource combatMusicSource;
+    [SerializeField] private AudioClip combatMusic;
+    [Header("Ambient Noise")]
+    [SerializeField] private AudioSource ambientSource;
+    [SerializeField] private AudioClip ambientClip;
     [Header("Levels")]
     [SerializeField] private LevelData[] levels;
 
@@ -32,6 +45,15 @@ public class PuzzleManager : MonoBehaviour
     [SerializeField] private RectTransform tileImagePrefab;
     [SerializeField] private Sprite straightSprite;
     [SerializeField] private Sprite elbowSprite;
+    [SerializeField] private float tileGap = 20f;
+    [SerializeField] private Sprite pipeStartSprite;
+    [SerializeField] private Sprite pipeEndSprite;
+    [SerializeField] private float endPipeSize = 1f;
+    [SerializeField] private float endPipeOverlap = 0f;
+
+    [Header("Level Complete")]
+    [SerializeField] private HarvestCutscene harvestCutscene;
+    [SerializeField] private float deathPause = 3f;
 
     [Header("Win Condition")]
     [SerializeField] private Direction entryDirection = Direction.West;
@@ -40,6 +62,12 @@ public class PuzzleManager : MonoBehaviour
     [Header("Aliens")]
     [SerializeField] private Transform player;
     [SerializeField] private int maxAliveEnemies = 10;
+
+    [Header("Reinforcements")]
+    [SerializeField] private GameObject basicAlienPrefab;
+    [SerializeField] private Vector2Int reinforcementCount = new Vector2Int(3, 4);
+    [SerializeField] private Vector2 reinforcementDelay = new Vector2(5f, 10f);
+    [SerializeField] private int maxBasicAliens = 10;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
@@ -55,8 +83,13 @@ public class PuzzleManager : MonoBehaviour
     private int _currentLevel;
     private int _aliveAliens;
     private int _aliveHeavies;
+    private int _aliveBasics;
     private float _nextReinforcement;
     private bool _solved;
+    private bool _completing;
+    public bool IsPlayingEnding { get; private set; }
+    private RectTransform _startPipe;
+    private RectTransform _endPipe;
 
     private PlayerHealth _playerHealth;
     private CharacterController _playerController;
@@ -78,7 +111,28 @@ public class PuzzleManager : MonoBehaviour
             player.TryGetComponent(out _playerHealth);
         }
 
+        if (_playerHealth != null)
+            _playerHealth.OnDeath += StopCombatMusic;
+
+        _startPipe = MakeEndPipe("Pipe Start", pipeStartSprite, new Vector2(1f, 0.5f));
+        _endPipe = MakeEndPipe("Pipe End", pipeEndSprite, new Vector2(0f, 0.5f));
+
+        if (endingCutscenePanel != null)
+            endingCutscenePanel.SetActive(false);
         BuildLevel(Mathf.Clamp(PlayerPrefs.GetInt(SaveKey, 0), 0, levels.Length - 1));
+
+        if (level1IntroPanel != null && _currentLevel == 0)
+        {
+            level1IntroPanel.SetActive(true);
+
+            Time.timeScale = 0f;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+        else if (level1IntroPanel != null)
+        {
+            level1IntroPanel.SetActive(false);
+        }
     }
 
     public bool HasNextLevel => _currentLevel + 1 < levels.Length;
@@ -109,10 +163,14 @@ public class PuzzleManager : MonoBehaviour
         tileGrid.childAlignment = TextAnchor.MiddleCenter;
 
         RectTransform gridRect = tileGrid.GetComponent<RectTransform>();
-        float cellWidth = (gridRect.rect.width - tileGrid.spacing.x * (gridSize - 1)) / gridSize;
-        float cellHeight = (gridRect.rect.height - tileGrid.spacing.y * (gridSize - 1)) / gridSize;
+        RectOffset padding = tileGrid.padding;
+        float width = gridRect.rect.width - padding.left - padding.right;
+        float height = gridRect.rect.height - padding.top - padding.bottom;
+        float cellWidth = (width - tileGap * (gridSize - 1)) / gridSize;
+        float cellHeight = (height - tileGap * (gridSize - 1)) / gridSize;
         float cell = Mathf.Min(cellWidth, cellHeight);
         tileGrid.cellSize = new Vector2(cell, cell);
+        tileGrid.spacing = new Vector2(tileGap, tileGap);
 
         Dictionary<Vector2Int, (PipeShape shape, int rotation)> solution = GenerateSolvablePath();
 
@@ -159,6 +217,7 @@ public class PuzzleManager : MonoBehaviour
         }
 
         SyncTiles();
+        PlayAmbient();
         OnLevelStarted?.Invoke(_currentLevel);
     }
 
@@ -176,7 +235,13 @@ public class PuzzleManager : MonoBehaviour
         _aliens.Clear();
         _aliveAliens = 0;
         _aliveHeavies = 0;
+        _aliveBasics = 0;
         _solved = false;
+        _completing = false;
+
+        StopAllCoroutines();
+        StopCombatMusic();
+        if (harvestCutscene != null) harvestCutscene.ClearCrops();
     }
 
     private void ResetPlayer()
@@ -273,21 +338,78 @@ public class PuzzleManager : MonoBehaviour
 
     private void Update()
     {
-        if (uiPanel.activeSelf) SyncTiles();
+        if (uiPanel.activeSelf)
+        {
+            SyncTiles();
+            PlaceLabels();
+        }
+
         HandleReinforcements();
     }
 
     private void HandleReinforcements()
     {
         LevelData level = levels[_currentLevel];
+        GameObject prefab = level.reinforcementPrefab != null ? level.reinforcementPrefab : basicAlienPrefab;
 
-        if (_aliveHeavies <= 0 || level.reinforcementPrefab == null) return;
+        if (!_solved || _completing || level.bossPrefab != null) return;
+        if (_aliveHeavies <= 0 || prefab == null || _plots.Count == 0) return;
         if (Time.time < _nextReinforcement) return;
 
-        _nextReinforcement = Time.time + level.reinforcementInterval;
+        _nextReinforcement = Time.time + Random.Range(reinforcementDelay.x, reinforcementDelay.y);
 
-        if (_aliveAliens < maxAliveEnemies)
-            SpawnEnemy(level.reinforcementPrefab, RandomPlotPosition());
+        List<Plot> freePlots = new List<Plot>(_plots);
+        int count = Random.Range(reinforcementCount.x, reinforcementCount.y + 1);
+
+        for (int i = 0; i < count && _aliveBasics < maxBasicAliens && freePlots.Count > 0; i++)
+        {
+            int pick = Random.Range(0, freePlots.Count);
+            SpawnEnemy(prefab, freePlots[pick].transform.position + Vector3.up);
+            freePlots.RemoveAt(pick);
+        }
+    }
+
+    private RectTransform MakeEndPipe(string pipeName, Sprite sprite, Vector2 pivot)
+    {
+        if (sprite == null) return null;
+
+        GameObject pipe = new GameObject(pipeName, typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+        pipe.transform.SetParent(tileGrid.transform, false);
+        pipe.GetComponent<LayoutElement>().ignoreLayout = true;
+
+        Image image = pipe.GetComponent<Image>();
+        image.sprite = sprite;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+
+        RectTransform rect = pipe.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = pivot;
+        return rect;
+    }
+
+    private void PlaceLabels()
+    {
+        if (_tileImages.Count == 0) return;
+
+        PlaceEndPipe(_startPipe, _tileImages[0], -1f);
+        PlaceEndPipe(_endPipe, _tileImages[_tileImages.Count - 1], 1f);
+    }
+
+    private void PlaceEndPipe(RectTransform pipe, RectTransform tile, float side)
+    {
+        if (pipe == null || tile == null) return;
+
+        Sprite sprite = pipe.GetComponent<Image>().sprite;
+        float height = tile.rect.height * endPipeSize;
+        float width = height * sprite.rect.width / sprite.rect.height;
+        pipe.sizeDelta = new Vector2(width, height);
+
+        Transform grid = tileGrid.transform;
+        float edge = (tile.rect.width * 0.5f - endPipeOverlap) * grid.lossyScale.x;
+        pipe.position = tile.position + grid.right * (side * edge);
+        pipe.SetAsLastSibling();
     }
 
     private void SyncTiles()
@@ -304,6 +426,10 @@ public class PuzzleManager : MonoBehaviour
         {
             _solved = true;
             Debug.Log("Puzzle solved!");
+
+            for (int i = 0; i < _plots.Count; i++)
+                _plots[i].Water(i * 0.08f);
+
             SpawnAliens();
         }
     }
@@ -373,25 +499,39 @@ public class PuzzleManager : MonoBehaviour
 
     private void SpawnAliens()
     {
+        StopAmbient();
+        PlayCombatMusic();
         uiPanel.SetActive(false);
 
         LevelData level = levels[_currentLevel];
 
+        // Spawn boss if this level has one
         if (level.bossPrefab != null)
         {
             SpawnBoss(level);
-            return;
         }
 
+        // Spawn normal aliens as well
         GameObject[] prefabs = level.alienPrefabs;
 
         if (prefabs != null && prefabs.Length > 0)
         {
             for (int i = 0; i < _plots.Count; i++)
-                SpawnEnemy(prefabs[i % prefabs.Length], _plots[i].transform.position + Vector3.up);
+            {
+                if (_aliveAliens >= maxAliveEnemies)
+                    break;
+
+                SpawnEnemy(
+                    prefabs[i % prefabs.Length],
+                    _plots[i].transform.position + Vector3.up
+                );
+            }
         }
 
-        _nextReinforcement = Time.time + level.reinforcementInterval;
+        // Start combat music
+        PlayCombatMusic();
+
+        _nextReinforcement = Time.time + Random.Range(reinforcementDelay.x, reinforcementDelay.y);
 
         if (_aliveAliens <= 0)
             CompleteLevel();
@@ -421,10 +561,15 @@ public class PuzzleManager : MonoBehaviour
         _aliveAliens++;
         health.OnDeath += HandleAlienDeath;
 
-        if (health.IsHeavy)
+        if (health.IsHeavy || prefab.name.Contains("Heavy"))
         {
             _aliveHeavies++;
             health.OnDeath += () => _aliveHeavies--;
+        }
+        else
+        {
+            _aliveBasics++;
+            health.OnDeath += () => _aliveBasics--;
         }
     }
 
@@ -473,6 +618,7 @@ public class PuzzleManager : MonoBehaviour
         _aliens.Add(boss);
         _aliveAliens = 0;
         _aliveHeavies = 0;
+        _aliveBasics = 0;
 
         CompleteLevel();
     }
@@ -486,16 +632,41 @@ public class PuzzleManager : MonoBehaviour
 
     private void CompleteLevel()
     {
+        if (_completing) return;
         if (_playerHealth != null && _playerHealth.IsDead) return;
 
-        OnLevelCompleted?.Invoke(_currentLevel);
+        _completing = true;
+        StartCoroutine(CompleteRoutine());
+    }
 
-        if (!HasNextLevel)
+    private IEnumerator CompleteRoutine()
+    {
+        StopCombatMusic();
+
+        foreach (UfoMissile ufo in FindObjectsByType<UfoMissile>(FindObjectsSortMode.None))
+            Destroy(ufo.gameObject);
+
+        yield return new WaitForSeconds(deathPause);
+
+        if (_playerHealth != null && _playerHealth.IsDead) yield break;
+
+        if (harvestCutscene != null)
+            yield return harvestCutscene.Play(_plots);
+
+        if (HasNextLevel)
         {
-            PlayerPrefs.DeleteKey(SaveKey);
-            Debug.Log("All levels complete");
-            OnAllLevelsCompleted?.Invoke();
+            OnLevelCompleted?.Invoke(_currentLevel);
+            yield break;
         }
+
+        PlayerPrefs.DeleteKey(SaveKey);
+        Debug.Log("All levels complete");
+        OnAllLevelsCompleted?.Invoke();
+
+        yield return PlayEndingCutscene();
+
+        Time.timeScale = 1f;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(sceneAfterEnding);
     }
 
     public void NextLevel()
@@ -509,5 +680,101 @@ public class PuzzleManager : MonoBehaviour
     {
         if (_playerHealth != null) _playerHealth.ResetHealth();
         BuildLevel(_currentLevel);
+    }
+
+    private void PlayCombatMusic()
+    {
+        if (combatMusicSource == null || combatMusic == null)
+            return;
+
+        if (combatMusicSource.clip != combatMusic)
+            combatMusicSource.clip = combatMusic;
+
+        if (!combatMusicSource.isPlaying)
+            combatMusicSource.Play();
+    }
+
+    private void StopCombatMusic()
+    {
+        if (combatMusicSource != null && combatMusicSource.isPlaying)
+            combatMusicSource.Stop();
+    }
+    private IEnumerator PlayEndingCutscene()
+    {
+        if (endingCutscenePlayer == null)
+        {
+            Debug.LogWarning("Ending cutscene VideoPlayer is not assigned.");
+            yield break;
+        }
+
+        IsPlayingEnding = true;
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        StopCombatMusic();
+        StopAmbient();
+        AudioListener.pause = false;
+
+        if (player != null)
+        {
+            if (player.TryGetComponent(out FPSMovement movement)) movement.enabled = false;
+            if (player.TryGetComponent(out PlayerShooting shooting)) shooting.enabled = false;
+        }
+
+        foreach (GameObject thing in hideDuringEnding)
+            if (thing != null) thing.SetActive(false);
+
+        if (endingCutscenePanel != null)
+            endingCutscenePanel.SetActive(true);
+
+        bool finished = false;
+        endingCutscenePlayer.loopPointReached += _ => finished = true;
+        endingCutscenePlayer.isLooping = false;
+        endingCutscenePlayer.audioOutputMode = VideoAudioOutputMode.Direct;
+
+        endingCutscenePlayer.Stop();
+        endingCutscenePlayer.Play();
+
+        while (!finished)
+            yield return null;
+
+        IsPlayingEnding = false;
+    }
+
+    private void PlayAmbient()
+    {
+        if (ambientSource == null || ambientClip == null) return;
+
+        ambientSource.clip = ambientClip;
+        ambientSource.loop = true;
+        if (!ambientSource.isPlaying) ambientSource.Play();
+    }
+
+    private void StopAmbient()
+    {
+        if (ambientSource != null) ambientSource.Stop();
+    }
+
+    public void CloseLevel1Intro()
+    {
+        if (level1IntroPanel != null)
+            level1IntroPanel.SetActive(false);
+
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    public void OpenLevel1Intro()
+    {
+        if (level1IntroPanel != null)
+        {
+            level1IntroPanel.SetActive(true);
+
+            Time.timeScale = 0f;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
     }
 }
