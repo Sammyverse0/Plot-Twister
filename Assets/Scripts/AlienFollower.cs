@@ -72,6 +72,10 @@ public class AlienFollower : MonoBehaviour
         target = newTarget;
         ApplyAgentSettings();
     }
+        public void HoldFor(float seconds)
+    {
+        _stunnedUntil = Mathf.Max(_stunnedUntil, Time.time + seconds);
+    }
 
     private float CurrentSpeed => _isCrawling ? crawlSpeed : moveSpeed;
 
