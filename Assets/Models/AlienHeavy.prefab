@@ -77,6 +77,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e04499bb198d2ef419215a269ecda7ab, type: 3}
+--- !u!4 &1558717136671520484 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -1070350730909333850, guid: e04499bb198d2ef419215a269ecda7ab, type: 3}
+  m_PrefabInstance: {fileID: 7243183843313676354}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &7137726199097333673 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: e04499bb198d2ef419215a269ecda7ab, type: 3}
@@ -122,6 +127,14 @@ PrefabInstance:
       propertyPath: m_Avatar
       value: 
       objectReference: {fileID: 9000000, guid: e04499bb198d2ef419215a269ecda7ab, type: 3}
+    - target: {fileID: 6214385591215964124, guid: 177a138f957b93747ba7f25028e162de, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: e940642d10a231f4bb2c43172fd4d4a7, type: 2}
+    - target: {fileID: 6214385591215964124, guid: 177a138f957b93747ba7f25028e162de, type: 3}
+      propertyPath: m_AnimatePhysics
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6216978220111698942, guid: 177a138f957b93747ba7f25028e162de, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 2.799
@@ -205,11 +218,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   potionPrefab: {fileID: 2767273331495172639, guid: 0c1ff2977e4b59349bc249d2841d5dd6, type: 3}
-  throwPoint: {fileID: 8640477815433995796, guid: 856bd81cecb7a55408834c0b4c1511a6, type: 3}
+  throwPoint: {fileID: 1558717136671520484}
+  throwStateName: Throw
+  releaseFrame: 71
+  clipFrames: 146
+  fallbackDelay: 10
   minRange: 6
   maxRange: 18
   cooldown: 6
-  windUp: 0.6
-  recover: 1
-  flightTime: 1
+  horizontalSpeed: 9
+  minFlightTime: 1.2
   aimError: 0.6
+  turnSpeed: 10
