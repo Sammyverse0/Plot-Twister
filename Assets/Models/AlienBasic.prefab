@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 705294986362342231}
   - component: {fileID: 7791390280968531256}
   - component: {fileID: 6214385591215964124}
+  - component: {fileID: 4694287547148605451}
   m_Layer: 0
   m_Name: AlienBasic
   m_TagString: Untagged
@@ -58,6 +59,10 @@ MonoBehaviour:
   standUpDuration: 1.5
   riseStateName: Stand up
   hitStunTime: 0.4
+  riseSound: {fileID: 0}
+  riseVolume: 1
+  snapToGround: 0
+  groundOffset: 0
   separationRadius: 1.2
   separationWeight: 1.5
 --- !u!136 &4192311816435365743
@@ -143,6 +148,33 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!54 &4694287547148605451
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 173435920081290131}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 112
+  m_CollisionDetection: 1
 --- !u!1 &5015267446314066019
 GameObject:
   m_ObjectHideFlags: 0
