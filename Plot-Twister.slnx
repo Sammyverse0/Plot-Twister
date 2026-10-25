@@ -31,7 +31,9 @@
   <Project Path="Unity.AI.Navigation.Updater.csproj" />
   <Project Path="glTFast.Newtonsoft.csproj" />
   <Project Path="glTFast.Documentation.Examples.csproj" />
+  <Project Path="CFXRRuntime.csproj" />
   <Project Path="Unity.AI.Navigation.Editor.csproj" />
+  <Project Path="CFXREditor.csproj" />
   <Project Path="Unity.InputSystem.ForUI.csproj" />
   <Project Path="Unity.AI.Navigation.csproj" />
   <Project Path="Unity.Collections.CodeGen.csproj" />

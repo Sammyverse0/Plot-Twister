@@ -289,7 +289,12 @@ MonoBehaviour:
   bodyMultiplier: 1
   legMultiplier: 1
   deathTime: 4
-  hitEffect: {fileID: 0}
+  hitEffect: {fileID: 6823200998282874702, guid: 8f8fe12323625f5499b2853dd2ad3e58, type: 3}
+  hitEffectLifetime: 2
+  deathEffect: {fileID: 5985634496115995773, guid: 463cf9f7af4680240898f6aeba3fe3e6, type: 3}
+  deathEffectPoint: {fileID: 0}
+  deathEffectOffset: {x: 0, y: 1.5, z: 0}
+  deathEffectLifetime: 4
   healthBarRoot: {fileID: 0}
   healthBarFill: {fileID: 0}
 --- !u!114 &3943047736017421929
@@ -353,6 +358,7 @@ MonoBehaviour:
   poundSound: {fileID: 8300000, guid: 202738ea16dde9d4b842cb8293243046, type: 3}
   voice: {fileID: 4702632325728420896}
   loopSource: {fileID: 4702632325728420896}
+  groundPound: {fileID: 3256465851870876976, guid: ab0114da43ec7464f9588163c3ed9d9c, type: 3}
 --- !u!82 &5338132671012874472
 AudioSource:
   m_ObjectHideFlags: 0

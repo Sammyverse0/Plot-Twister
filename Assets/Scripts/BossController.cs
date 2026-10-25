@@ -68,6 +68,9 @@ public class BossController : MonoBehaviour
     [SerializeField] private AudioSource voice;
     [SerializeField] private AudioSource loopSource;
 
+    [Header("VFX")]
+    [SerializeField] private ParticleSystem groundPound;
+
     private static readonly int IsRunningHash = Animator.StringToHash("IsRunning");
     private static readonly int SpinHash = Animator.StringToHash("Spin");
     private static readonly int RoarHash = Animator.StringToHash("Roar");
@@ -370,6 +373,7 @@ public class BossController : MonoBehaviour
         transform.position = land;
         Land(land);
 
+
         yield return new WaitForSeconds(poundRecover);
         StopSound();
     }
@@ -380,6 +384,13 @@ public class BossController : MonoBehaviour
 
         PlaySound(poundSound);
         if (cameraShake != null) cameraShake.Shake(3f, 0.6f);
+
+        if (groundPound != null)
+        {
+            groundPound.transform.position = land + Vector3.up * 0.05f;
+            groundPound.transform.rotation = Quaternion.identity;
+            groundPound.Play();
+        }
 
         if (playerHealth != null)
         {
