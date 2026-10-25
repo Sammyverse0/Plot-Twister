@@ -17,6 +17,7 @@ public class GameUI : MonoBehaviour
 
     private void Awake()
     {
+        Debug.Log("GameUI instance " + GetInstanceID() + " on " + gameObject.name);
         if (playerHealth == null)
             playerHealth = FindFirstObjectByType<PlayerHealth>();
     }
@@ -92,8 +93,18 @@ public class GameUI : MonoBehaviour
 
     public void OnRestartClicked()
     {
-        HidePanels();
+        Debug.Log("OnRestartClicked on GameUI " + GetInstanceID() + " panel " + restartPanel.GetInstanceID(), this);
         puzzleManager.RestartLevel();
+        HidePanels();
+    }
+
+    private void ShowRestart()
+    {
+        Debug.Log("ShowRestart on GameUI " + GetInstanceID() + " panel " + restartPanel.GetInstanceID(), this);
+        if (playerHealth != null && !playerHealth.IsDead)
+            return;
+
+        ShowPanel(restartPanel);
     }
 
     private void ShowLevelComplete(int level)
@@ -104,10 +115,6 @@ public class GameUI : MonoBehaviour
         ShowPanel(levelCompletePanel);
     }
 
-    private void ShowRestart()
-    {
-        ShowPanel(restartPanel);
-    }
 
     private void ShowPanel(GameObject panel)
     {
