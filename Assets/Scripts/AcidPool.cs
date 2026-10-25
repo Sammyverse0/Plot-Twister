@@ -13,14 +13,16 @@ public class AcidPool : MonoBehaviour
     [SerializeField] private float tickTime = 0.5f;
     [SerializeField] private float maxVerticalGap = 1f;
     [SerializeField] private float footPadding = 0.3f;
+    
 
     private readonly List<Transform> _blobs = new();
     private readonly List<Vector3> _baseScales = new();
-
+    
     private PlayerHealth _player;
     private Collider _playerCollider;
     private float _endTime;
     private float _nextTick;
+    public float FootprintRadius => radius * 1.1f;
 
     public static Vector3 FindGround(Vector3 from, Vector3 fallback)
     {

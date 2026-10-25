@@ -9,6 +9,9 @@ public enum Direction { North, East, South, West }
 public class LevelData
 {
     public int gridSize = 2;
+    public Transform plotOrigin;
+    public Transform playerSpawnPoint;
+    public Transform propPoint;
     public GameObject[] alienPrefabs;
     public GameObject bossPrefab;
     public Transform bossSpawnPoint;
@@ -144,6 +147,18 @@ public class PuzzleManager : MonoBehaviour
 
     public bool HasNextLevel => _currentLevel + 1 < levels.Length;
 
+    private void MovePropTo(int index)
+    {
+        Transform point = levels[index].propPoint;
+        if (point == null) return;
+
+        transform.SetPositionAndRotation(point.position, point.rotation);
+    }
+    private Transform GetPlotParent(int index)
+    {
+        Transform origin = levels[index].plotOrigin;
+        return origin != null ? origin : plotParent;
+    }
     private void ResolvePlayer()
     {
         if (player != null) return;
@@ -156,12 +171,14 @@ public class PuzzleManager : MonoBehaviour
     public void BuildLevel(int index)
     {
         ClearLevel();
-        ResetPlayer();
+        MovePropTo(index);
+        ResetPlayer(index);
 
         _currentLevel = index;
         PlayerPrefs.SetInt(SaveKey, index);
         PlayerPrefs.Save();
         gridSize = levels[index].gridSize;
+        Transform parent = GetPlotParent(index);
 
         tileGrid.startCorner = GridLayoutGroup.Corner.UpperLeft;
         tileGrid.startAxis = GridLayoutGroup.Axis.Horizontal;
@@ -194,8 +211,8 @@ public class PuzzleManager : MonoBehaviour
             int z = gridSize - 1 - row;
             Vector2Int gridPos = new Vector2Int(x, row);
 
-            Vector3 worldPos = plotParent.position + new Vector3(x * plotSpacing.x, 0f, z * plotSpacing.y);
-            Plot plot = Instantiate(plotPrefab, worldPos, Quaternion.identity, plotParent).GetComponent<Plot>();
+            Vector3 worldPos = parent.position + new Vector3(x * plotSpacing.x, 0f, z * plotSpacing.y);
+            Plot plot = Instantiate(plotPrefab, worldPos, Quaternion.identity, parent).GetComponent<Plot>();
             plot.manager = this;
 
             if (solution != null && solution.TryGetValue(gridPos, out var required))
@@ -251,12 +268,16 @@ public class PuzzleManager : MonoBehaviour
         if (harvestCutscene != null) harvestCutscene.ClearCrops();
     }
 
-    private void ResetPlayer()
+    private void ResetPlayer(int index)
     {
         if (player == null) return;
 
+        Transform spawn = levels[index].playerSpawnPoint;
+        Vector3 position = spawn != null ? spawn.position : _startPosition;
+        Quaternion rotation = spawn != null ? spawn.rotation : _startRotation;
+
         if (_playerController != null) _playerController.enabled = false;
-        player.SetPositionAndRotation(_startPosition, _startRotation);
+        player.SetPositionAndRotation(position, rotation);
         if (_playerController != null) _playerController.enabled = true;
     }
 
@@ -597,7 +618,7 @@ public class PuzzleManager : MonoBehaviour
 
     private void SpawnBoss(LevelData level)
     {
-        Vector3 pos = level.bossSpawnPoint != null ? level.bossSpawnPoint.position : plotParent.position;
+        Vector3 pos = level.bossSpawnPoint != null ? level.bossSpawnPoint.position : GetPlotParent(_currentLevel).position;
         Quaternion rot = level.bossSpawnPoint != null ? level.bossSpawnPoint.rotation : Quaternion.identity;
 
         GameObject boss = Instantiate(level.bossPrefab, pos, rot);

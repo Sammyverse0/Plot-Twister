@@ -478,7 +478,7 @@ MonoBehaviour:
   settingsPanel: {fileID: 1537530441}
   newGameButton: {fileID: 1892098202}
   cutscenePlayer: {fileID: 340478281}
-  gameSceneName: MainScene 2
+  gameSceneName: MainScene 4
   musicSource: {fileID: 914115900}
 --- !u!114 &914115902
 MonoBehaviour:

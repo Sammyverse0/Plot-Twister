@@ -66,6 +66,12 @@ public class EnemyHealth : MonoBehaviour
         if (_dead) return;
         if (_follower != null && !_follower.IsAwake) return;
 
+        if (_follower != null && _follower.IsCrawling)
+        {
+            KillOutright();
+            return;
+        }
+
         if (part == BodyPart.Head && headshotKills)
             amount = CurrentHealth;
 
@@ -89,10 +95,19 @@ public class EnemyHealth : MonoBehaviour
 
         if (_follower == null) return;
 
-        if (part == BodyPart.Legs)
+        if (part == BodyPart.Legs && _follower.CanCrawl)
             _follower.StartCrawling();
         else
             _follower.GetHit();
+    }
+    private void KillOutright()
+    {
+        CurrentHealth = 0f;
+        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+
+        if (healthBarFill != null) healthBarFill.fillAmount = 0f;
+
+        Die();
     }
 
     private void Die()
