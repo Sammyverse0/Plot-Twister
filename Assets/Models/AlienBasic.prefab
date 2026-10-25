@@ -15,10 +15,15 @@ GameObject:
   - component: {fileID: 7791390280968531256}
   - component: {fileID: 6214385591215964124}
 <<<<<<< HEAD
+<<<<<<< HEAD
   m_Layer: 7
 =======
   - component: {fileID: 4694287547148605451}
   m_Layer: 0
+>>>>>>> origin/main
+=======
+  - component: {fileID: 4694287547148605451}
+  m_Layer: 7
 >>>>>>> origin/main
   m_Name: AlienBasic
   m_TagString: Untagged
@@ -64,6 +69,9 @@ MonoBehaviour:
   riseStateName: Stand up
   hitStunTime: 0.4
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
   moveStyle: 0
   leadTime: 1.2
   commitDistance: 5
@@ -75,6 +83,9 @@ MonoBehaviour:
   skittishRange: 5
   kiteDistance: 11
   kiteTolerance: 2.5
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
 =======
 >>>>>>> origin/main
   riseSound: {fileID: 0}
@@ -83,7 +94,7 @@ MonoBehaviour:
   groundOffset: 0
   separationRadius: 1.2
   separationWeight: 1.5
-  canCrawl: 0
+  canCrawl: 1
 --- !u!136 &4192311816435365743
 CapsuleCollider:
   m_ObjectHideFlags: 0

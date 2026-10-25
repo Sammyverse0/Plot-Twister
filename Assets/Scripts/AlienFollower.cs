@@ -105,11 +105,6 @@ public class AlienFollower : MonoBehaviour
         _skittish = Random.value < skittishChance;
         _strafeSign = Random.value < 0.5f ? -1f : 1f;
         _nextStrafeFlip = Time.time + Random.Range(2f, 4f);
-        if (_rb != null)
-        {
-            _rb.freezeRotation = true;
-            _rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
-        }
 
         ApplyAgentSettings();
     }
