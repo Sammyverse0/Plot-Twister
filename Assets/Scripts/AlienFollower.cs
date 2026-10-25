@@ -18,6 +18,10 @@ public class AlienFollower : MonoBehaviour
     [SerializeField] private AudioClip riseSound;
     [SerializeField] private float riseVolume = 1f;
 
+    [Header("Ground")]
+    [SerializeField] private bool snapToGround;
+    [SerializeField] private float groundOffset;
+    
     [Header("Separation")]
     [SerializeField] private float separationRadius = 1.2f;
     [SerializeField] private float separationWeight = 1.5f;
@@ -86,6 +90,31 @@ public class AlienFollower : MonoBehaviour
         _agent.stoppingDistance = stopDistance;
     }
 
+    private void SnapToGround()
+    {
+        if (!snapToGround) return;
+
+        RaycastHit[] hits = Physics.RaycastAll(
+            transform.position + Vector3.up, Vector3.down, 20f, ~0, QueryTriggerInteraction.Ignore);
+
+        float best = float.MaxValue;
+        float groundY = transform.position.y;
+
+        foreach (RaycastHit hit in hits)
+        {
+            if (hit.transform.IsChildOf(transform)) continue;
+            if (hit.collider.GetComponentInParent<PlayerHealth>() != null) continue;
+            if (hit.collider.GetComponentInParent<EnemyHealth>() != null) continue;
+            if (hit.distance >= best) continue;
+
+            best = hit.distance;
+            groundY = hit.point.y;
+        }
+
+        Vector3 pos = transform.position;
+        pos.y = Mathf.MoveTowards(pos.y, groundY + groundOffset, 10f * Time.deltaTime);
+        transform.position = pos;
+    }
     public void StartCrawling()
     {
         if (_isCrawling || !IsAwake) return;
@@ -136,6 +165,10 @@ public class AlienFollower : MonoBehaviour
 
     private void Update()
     {
+        if (snapToGround && !_isDead && (_agent == null || !_agent.enabled || !_agent.isOnNavMesh))
+        {
+            SnapToGround();
+        }   
         if (_isRising) CheckRising();
         if (target == null || !IsAwake) return;
 

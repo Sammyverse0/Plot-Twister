@@ -100,6 +100,10 @@ PrefabInstance:
       value: AlienHeavy
       objectReference: {fileID: 0}
     - target: {fileID: 705294986362342231, guid: 177a138f957b93747ba7f25028e162de, type: 3}
+      propertyPath: isHeavy
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 705294986362342231, guid: 177a138f957b93747ba7f25028e162de, type: 3}
       propertyPath: maxHealth
       value: 150
       objectReference: {fileID: 0}
