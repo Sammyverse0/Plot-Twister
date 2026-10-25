@@ -2427,7 +2427,7 @@ MonoBehaviour:
   puzzleManager: {fileID: 1769530782}
   playerHealth: {fileID: 2035326336}
   pausePanel: {fileID: 1464546724}
-  restartPanel: {fileID: 589403029}
+  restartPanel: {fileID: 1750151718}
   levelCompletePanel: {fileID: 930933393}
   nextLevelButton: {fileID: 79184259}
   pauseAction: {fileID: 8120728088994939123, guid: 052faaac586de48259a63d0c4782560b, type: 3}
@@ -3014,6 +3014,99 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &418832250
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 418832253}
+  - component: {fileID: 418832252}
+  - component: {fileID: 418832251}
+  m_Layer: 0
+  m_Name: Terrain_(-54.80, 2.60, 321.10)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!154 &418832251
+TerrainCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 418832250}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_TerrainData: {fileID: 15600000, guid: 5207952d3b2bd544692debb5370c3b2d, type: 2}
+  m_EnableTreeColliders: 1
+--- !u!218 &418832252
+Terrain:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 418832250}
+  m_Enabled: 1
+  serializedVersion: 6
+  m_TerrainData: {fileID: 15600000, guid: 5207952d3b2bd544692debb5370c3b2d, type: 2}
+  m_TreeDistance: 5000
+  m_TreeBillboardDistance: 50
+  m_TreeCrossFadeLength: 5
+  m_TreeMaximumFullLODCount: 50
+  m_DetailObjectDistance: 80
+  m_DetailObjectDensity: 1
+  m_HeightmapPixelError: 5
+  m_SplatMapDistance: 1000
+  m_HeightmapMinimumLODSimplification: 0
+  m_HeightmapMaximumLOD: 0
+  m_ShadowCastingMode: 2
+  m_DrawHeightmap: 1
+  m_DrawInstanced: 0
+  m_DrawTreesAndFoliage: 1
+  m_StaticShadowCaster: 0
+  m_IgnoreQualitySettings: 0
+  m_ReflectionProbeUsage: 1
+  m_MaterialTemplate: {fileID: 2100000, guid: 594ea882c5a793440b60ff72d896021e, type: 2}
+  m_BakeLightProbesForTrees: 1
+  m_PreserveTreePrototypeLayers: 0
+  m_DeringLightProbesForTrees: 1
+  m_ReceiveGI: 1
+  m_ScaleInLightmap: 0.064
+  m_LightmapParameters: {fileID: 15203, guid: 0000000000000000f000000000000000, type: 0}
+  m_GroupingID: 0
+  m_RenderingLayerMask: 1
+  m_AllowAutoConnect: 1
+  m_EnableHeightmapRayTracing: 1
+  m_EnableTreesAndDetailsRayTracing: 0
+  m_TreeMotionVectorModeOverride: 3
+--- !u!4 &418832253
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 418832250}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -54.8, y: 2.6, z: 321.1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &425367165
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10273,7 +10366,7 @@ VideoPlayer:
   m_TargetMaterialRenderer: {fileID: 0}
   m_TargetMaterialProperty: <noninit>
   m_RenderMode: 1
-  m_AspectRatio: 2
+  m_AspectRatio: 5
   m_DataSource: 0
   m_TimeUpdateMode: 2
   m_PlaybackSpeed: 1
@@ -13143,7 +13236,6 @@ GameObject:
   - component: {fileID: 2035326334}
   - component: {fileID: 2035326335}
   - component: {fileID: 2035326336}
-  - component: {fileID: 2035326338}
   - component: {fileID: 2035326337}
   - component: {fileID: 2035326339}
   m_Layer: 0
@@ -13320,25 +13412,6 @@ MonoBehaviour:
   disableDuringCutscene:
   - {fileID: 499593771}
   hideDuringCutscene: []
---- !u!114 &2035326338
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2035326330}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 79b92b8bf939e7d4e97ae31ade7a1bfa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GameUI
-  puzzleManager: {fileID: 1769530782}
-  playerHealth: {fileID: 2035326336}
-  pausePanel: {fileID: 1464546724}
-  restartPanel: {fileID: 1750151718}
-  levelCompletePanel: {fileID: 930933393}
-  nextLevelButton: {fileID: 79184259}
-  pauseAction: {fileID: 8120728088994939123, guid: 052faaac586de48259a63d0c4782560b, type: 3}
 --- !u!82 &2035326339
 AudioSource:
   m_ObjectHideFlags: 0

@@ -36,6 +36,8 @@ public class PlayerHealth : MonoBehaviour
             damageFlash.raycastTarget = false;
             SetFlashAlpha(0f);
         }
+
+       
     }
 
     private void Update()
@@ -82,7 +84,7 @@ public class PlayerHealth : MonoBehaviour
     private void Die()
     {
         IsDead = true;
-        Debug.Log("Player died");
+        Debug.Log("Player died, health instance " + GetInstanceID() + " frame " + Time.frameCount);
 
         if (deathSource != null && deathSound != null)
         {

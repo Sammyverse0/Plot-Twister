@@ -108,8 +108,15 @@ public class PuzzleManager : MonoBehaviour
             _startPosition = player.position;
             _startRotation = player.rotation;
             player.TryGetComponent(out _playerController);
-            player.TryGetComponent(out _playerHealth);
+
+            _playerHealth = player.GetComponentInChildren<PlayerHealth>();
+            if (_playerHealth == null)
+                _playerHealth = player.GetComponentInParent<PlayerHealth>();
+            if (_playerHealth == null)
+                _playerHealth = FindFirstObjectByType<PlayerHealth>();
         }
+
+        Debug.Log(_playerHealth == null);
 
         if (_playerHealth != null)
             _playerHealth.OnDeath += StopCombatMusic;
