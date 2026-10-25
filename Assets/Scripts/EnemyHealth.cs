@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-
 public class EnemyHealth : MonoBehaviour
 {
     [SerializeField] private float maxHealth = 100f;
@@ -19,6 +18,11 @@ public class EnemyHealth : MonoBehaviour
 
     [Header("Effects")]
     [SerializeField] private GameObject hitEffect;
+    [SerializeField] private float hitEffectLifetime = 2f;
+    [SerializeField] private GameObject deathEffect;
+    [SerializeField] private Transform deathEffectPoint;
+    [SerializeField] private Vector3 deathEffectOffset = new Vector3(0f, 1f, 0f);
+    [SerializeField] private float deathEffectLifetime = 4f;
 
     [Header("Floating Health Bar")]
     [SerializeField] private Transform healthBarRoot;
@@ -49,7 +53,6 @@ public class EnemyHealth : MonoBehaviour
         _cam = Camera.main;
     }
 
-
     private void LateUpdate()
     {
         if (healthBarRoot != null && _cam != null)
@@ -63,8 +66,15 @@ public class EnemyHealth : MonoBehaviour
 
     public void TakeHit(float amount, BodyPart part)
     {
+        TakeHit(amount, part, transform.position + Vector3.up, Vector3.up);
+    }
+
+    public void TakeHit(float amount, BodyPart part, Vector3 hitPoint, Vector3 hitNormal)
+    {
         if (_dead) return;
         if (_follower != null && !_follower.IsAwake) return;
+
+        SpawnHitEffect(hitPoint, hitNormal);
 
         if (_follower != null && _follower.IsCrawling)
         {
@@ -100,6 +110,31 @@ public class EnemyHealth : MonoBehaviour
         else
             _follower.GetHit();
     }
+
+    private void SpawnHitEffect(Vector3 point, Vector3 normal)
+    {
+        if (hitEffect == null) return;
+
+        Quaternion rotation = normal.sqrMagnitude > 0.001f
+            ? Quaternion.LookRotation(normal)
+            : Quaternion.identity;
+
+        GameObject fx = Instantiate(hitEffect, point, rotation);
+        Destroy(fx, hitEffectLifetime);
+    }
+
+    private void SpawnDeathEffect()
+    {
+        if (deathEffect == null) return;
+
+        Vector3 position = deathEffectPoint != null
+            ? deathEffectPoint.position
+            : transform.position + deathEffectOffset;
+
+        GameObject fx = Instantiate(deathEffect, position, Quaternion.identity);
+        Destroy(fx, deathEffectLifetime);
+    }
+
     private void KillOutright()
     {
         CurrentHealth = 0f;
@@ -114,6 +149,8 @@ public class EnemyHealth : MonoBehaviour
     {
         _dead = true;
         OnDeath?.Invoke();
+
+        SpawnDeathEffect();
 
         if (healthBarRoot != null) healthBarRoot.gameObject.SetActive(false);
 

@@ -440,7 +440,12 @@ MonoBehaviour:
   bodyMultiplier: 1
   legMultiplier: 1
   deathTime: 3
-  hitEffect: {fileID: 0}
+  hitEffect: {fileID: 6823200998282874702, guid: 8f8fe12323625f5499b2853dd2ad3e58, type: 3}
+  hitEffectLifetime: 2
+  deathEffect: {fileID: 5985634496115995773, guid: 463cf9f7af4680240898f6aeba3fe3e6, type: 3}
+  deathEffectPoint: {fileID: 0}
+  deathEffectOffset: {x: 0, y: 1.5, z: 0}
+  deathEffectLifetime: 4
   healthBarRoot: {fileID: 5328715777460935724}
   healthBarFill: {fileID: 8675694296099563106}
 --- !u!114 &2713485389890868091
