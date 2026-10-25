@@ -58,6 +58,7 @@ public class AlienFollower : MonoBehaviour
     private static readonly int DieHash = Animator.StringToHash("Die");
 
     private NavMeshAgent _agent;
+    private Rigidbody _rb;
     private Animator _animator;
     private float _wakeTime;
     private bool _isRising = true;
@@ -65,6 +66,9 @@ public class AlienFollower : MonoBehaviour
     private float _stunnedUntil;
     private bool _isCrawling;
     private bool _isDead;
+    private Vector3 _desiredMove;
+    private Vector3 _lookDirection;
+    private bool _hasLook;
 
     private Vector3 _targetVelocity;
     private Vector3 _lastTargetPos;
@@ -92,6 +96,7 @@ public class AlienFollower : MonoBehaviour
     private void Awake()
     {
         TryGetComponent(out _agent);
+        TryGetComponent(out _rb);
         _animator = GetComponentInChildren<Animator>();
         _wakeTime = Time.time + standUpDuration;
 
@@ -191,6 +196,13 @@ public class AlienFollower : MonoBehaviour
         }
 
         if (_agent != null) _agent.enabled = false;
+
+        if (_rb != null)
+        {
+            _rb.linearVelocity = Vector3.zero;
+            _rb.angularVelocity = Vector3.zero;
+            _rb.isKinematic = true;
+        }
     }
 
     private void CheckRising()
@@ -360,8 +372,13 @@ public class AlienFollower : MonoBehaviour
 
     private void Update()
     {
-        if (snapToGround && !_isDead && (_agent == null || !_agent.enabled || !_agent.isOnNavMesh))
+        _desiredMove = Vector3.zero;
+        _hasLook = false;
+
+        if (snapToGround && _rb == null && !_isDead && (_agent == null || !_agent.enabled || !_agent.isOnNavMesh))
+        {
             SnapToGround();
+        }
 
         if (_isRising) CheckRising();
         if (target == null) return;
@@ -400,6 +417,19 @@ public class AlienFollower : MonoBehaviour
         if (move.sqrMagnitude > 1f)
             move.Normalize();
 
+        if (_rb != null)
+        {
+            _desiredMove = move;
+
+            if (toTarget.sqrMagnitude > 0.0001f)
+            {
+                _lookDirection = toTarget.normalized;
+                _hasLook = true;
+            }
+
+            return;
+        }
+
         transform.position += move * (CurrentSpeed * Time.deltaTime);
 
         Vector3 face = FacingDirection(move, toTarget);
@@ -409,6 +439,21 @@ public class AlienFollower : MonoBehaviour
                 transform.rotation,
                 Quaternion.LookRotation(face.normalized),
                 turnSpeed * Time.deltaTime);
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        if (_rb == null || _rb.isKinematic) return;
+
+        Vector3 velocity = _rb.linearVelocity;
+        Vector3 horizontal = _desiredMove * CurrentSpeed;
+        _rb.linearVelocity = new Vector3(horizontal.x, velocity.y, horizontal.z);
+
+        if (_hasLook)
+        {
+            Quaternion look = Quaternion.LookRotation(_lookDirection);
+            _rb.MoveRotation(Quaternion.Slerp(_rb.rotation, look, turnSpeed * Time.fixedDeltaTime));
         }
     }
 
