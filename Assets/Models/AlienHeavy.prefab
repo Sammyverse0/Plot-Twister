@@ -401,6 +401,14 @@ PrefabInstance:
       propertyPath: moveSpeed
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 4694287547148605451, guid: 177a138f957b93747ba7f25028e162de, type: 3}
+      propertyPath: m_Constraints
+      value: 112
+      objectReference: {fileID: 0}
+    - target: {fileID: 4694287547148605451, guid: 177a138f957b93747ba7f25028e162de, type: 3}
+      propertyPath: m_CollisionDetection
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6214385591215964124, guid: 177a138f957b93747ba7f25028e162de, type: 3}
       propertyPath: m_Avatar
       value: 
