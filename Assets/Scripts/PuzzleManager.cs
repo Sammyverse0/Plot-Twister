@@ -37,6 +37,11 @@ public class PuzzleManager : MonoBehaviour
     [Header("Levels")]
     [SerializeField] private LevelData[] levels;
 
+    [Header("Dialogue")]
+    [SerializeField] private DialogueManager dialogue;
+    private bool _introPlayed;
+    private bool _introWasOpen;
+
     [Header("Grid")]
     [SerializeField] private Vector2 plotSpacing = new Vector2(2f, 2f);
     [SerializeField] private Transform plotParent;
@@ -266,6 +271,7 @@ public class PuzzleManager : MonoBehaviour
         StopAllCoroutines();
         StopCombatMusic();
         if (harvestCutscene != null) harvestCutscene.ClearCrops();
+        if (dialogue != null) dialogue.Stop();
     }
 
     private void ResetPlayer(int index)
@@ -366,6 +372,16 @@ public class PuzzleManager : MonoBehaviour
 
     private void Update()
     {
+        if (level1IntroPanel != null)
+        {
+            if (level1IntroPanel.activeInHierarchy)
+                _introWasOpen = true;
+            else if (_introWasOpen && !_introPlayed && !_solved)
+            {
+                _introPlayed = true;
+                if (dialogue != null) dialogue.Play("Intro");
+            }
+        }
         if (uiPanel.activeSelf)
         {
             SyncTiles();
@@ -527,19 +543,18 @@ public class PuzzleManager : MonoBehaviour
 
     private void SpawnAliens()
     {
+        if (dialogue != null) dialogue.Play("AlienRise");
         StopAmbient();
         PlayCombatMusic();
         uiPanel.SetActive(false);
 
         LevelData level = levels[_currentLevel];
 
-        // Spawn boss if this level has one
         if (level.bossPrefab != null)
         {
             SpawnBoss(level);
         }
 
-        // Spawn normal aliens as well
         GameObject[] prefabs = level.alienPrefabs;
 
         if (prefabs != null && prefabs.Length > 0)
@@ -555,8 +570,6 @@ public class PuzzleManager : MonoBehaviour
                 );
             }
         }
-
-        // Start combat music
         PlayCombatMusic();
 
         _nextReinforcement = Time.time + Random.Range(reinforcementDelay.x, reinforcementDelay.y);
@@ -792,6 +805,12 @@ public class PuzzleManager : MonoBehaviour
         Time.timeScale = 1f;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        if (dialogue != null && !_introPlayed && !_solved)
+        {
+            _introPlayed = true;
+            dialogue.Play("Intro");
+        }
     }
 
     public void OpenLevel1Intro()
