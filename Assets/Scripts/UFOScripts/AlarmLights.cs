@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class AlarmLights : MonoBehaviour
@@ -12,6 +13,12 @@ public class AlarmLights : MonoBehaviour
     [SerializeField] private bool spotLightsOnly = true;
     [SerializeField] private int triggerOnPress = 1;
 
+    [Header("Alarm Audio")]
+    [SerializeField] private AudioSource alarmSource;
+    [SerializeField] private AudioClip alarmClip;
+    [SerializeField, Range(0f, 1f)] private float alarmVolume = 1f;
+    [SerializeField] private bool loopAlarm = true;
+
     private Light[] lights;
     private float[] baseIntensities;
     private bool alarmActive;
@@ -22,6 +29,14 @@ public class AlarmLights : MonoBehaviour
     {
         if (objectiveManager == null)
             objectiveManager = FindFirstObjectByType<ObjectiveManager>();
+
+        if (alarmSource == null)
+        {
+            alarmSource = gameObject.AddComponent<AudioSource>();
+            alarmSource.spatialBlend = 0f;
+        }
+
+        alarmSource.playOnAwake = false;
     }
 
     private void OnEnable()
@@ -44,7 +59,7 @@ public class AlarmLights : MonoBehaviour
     private void CollectLights()
     {
         Light[] all = FindObjectsByType<Light>(FindObjectsSortMode.None);
-        System.Collections.Generic.List<Light> found = new System.Collections.Generic.List<Light>();
+        List<Light> found = new List<Light>();
 
         foreach (Light light in all)
         {
@@ -85,6 +100,26 @@ public class AlarmLights : MonoBehaviour
                 light.color = alarmColor;
             }
         }
+
+        PlayAlarmSound();
+    }
+
+    public void StopAlarmSound()
+    {
+        if (alarmSource != null)
+        {
+            alarmSource.Stop();
+        }
+    }
+
+    private void PlayAlarmSound()
+    {
+        if (alarmClip == null || alarmSource == null) return;
+
+        alarmSource.clip = alarmClip;
+        alarmSource.volume = alarmVolume;
+        alarmSource.loop = loopAlarm;
+        alarmSource.Play();
     }
 
     private void Update()
