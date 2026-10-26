@@ -706,8 +706,18 @@ public class PuzzleManager : MonoBehaviour
 
         yield return PlayEndingCutscene();
 
+        if (endingCutscenePanel != null)
+            endingCutscenePanel.SetActive(false);
+
+        if (dialogue != null)
+        {
+            IsPlayingEnding = true;
+            yield return dialogue.PlayAndWait("Finale");
+        }
+
         Time.timeScale = 1f;
         UnityEngine.SceneManagement.SceneManager.LoadScene(sceneAfterEnding);
+
     }
 
     public void NextLevel()

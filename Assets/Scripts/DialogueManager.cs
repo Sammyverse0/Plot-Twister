@@ -68,6 +68,14 @@ public class DialogueManager : MonoBehaviour
     private bool _tutorialSeen;
     private bool _introPlayed;
 
+    public bool IsPlaying => _routine != null;
+
+    public IEnumerator PlayAndWait(string id)
+    {
+        Play(id);
+        while (IsPlaying)
+            yield return null;
+    }
     private void Awake()
     {
         if (dialogueBox == null || nameText == null || bodyText == null)
@@ -183,7 +191,23 @@ public class DialogueManager : MonoBehaviour
             yield return new WaitForSecondsRealtime(delay);
         }
     }
+    private void OnValidate()
+    {
+        if (sequences.Exists(s => s.id == "Finale")) return;
 
+        sequences.Add(new DialogueSequence
+        {
+            id = "Finale",
+            lines = new List<DialogueLine>
+            {
+                new DialogueLine { speakerName = "Alien", text = "I can't believe I was one of you this whole time..." },
+                new DialogueLine { speakerName = "Bob", text = "Yes. You always were. You were an experiment. The time has come, join us and let's take over humanity." },
+                new DialogueLine { speakerName = "Alien", text = "I could never join you. I believe in humanity." },
+                new DialogueLine { speakerName = "Alien", text = "They deserve to live. We can't take over humanity." },
+                new DialogueLine { speakerName = "Bob", text = "Fine, your wish. Might as well end you with humanity." }
+            }
+        });
+    }
     private void PlayTypeSound()
     {
         if (audioSource == null || typeSound == null) return;

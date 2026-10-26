@@ -19189,7 +19189,7 @@ MonoBehaviour:
   endingCutscenePlayer: {fileID: 1566658403}
   endingCutscenePanel: {fileID: 1566658402}
   hideDuringEnding: []
-  sceneAfterEnding: MainMenu
+  sceneAfterEnding: UFO
   combatMusicSource: {fileID: 1769530783}
   combatMusic: {fileID: 8300000, guid: c31dbe21c62dd644bab4cb4501ff43cf, type: 3}
   ambientSource: {fileID: 2035326339}
@@ -21625,7 +21625,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70e6277ac2a79704abc7d334b29d4041, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  tutorialPanel: {fileID: 0}
+  tutorialPanel: {fileID: 392360952}
   dialogueBox: {fileID: 19161133}
   portraitImage: {fileID: 308553927}
   nameText: {fileID: 18818200}
@@ -21651,6 +21651,24 @@ MonoBehaviour:
     - speakerName: Farmer
       portrait: {fileID: 21300000, guid: d82e6f636ca627a4cace493d55c410ed, type: 3}
       text: What the TF?! ALIENS IN MY PLOTS?!
+  - id: Finale
+    lines:
+    - speakerName: Alien
+      portrait: {fileID: 21300000, guid: 0693c72a4d3403843ad5a6eb8c6d8117, type: 3}
+      text: I can't believe I was one of you this whole time...
+    - speakerName: Bob
+      portrait: {fileID: 21300000, guid: ecf23e689db4a554dad4e68751f8ddf3, type: 3}
+      text: Yes. You always were. You were an experiment. The time has come, join
+        us and let's take over humanity.
+    - speakerName: Alien
+      portrait: {fileID: 21300000, guid: 0693c72a4d3403843ad5a6eb8c6d8117, type: 3}
+      text: I could never join you. I believe in humanity.
+    - speakerName: Alien
+      portrait: {fileID: 21300000, guid: 0693c72a4d3403843ad5a6eb8c6d8117, type: 3}
+      text: They deserve to live. We can't take over humanity.
+    - speakerName: Bob
+      portrait: {fileID: 21300000, guid: ecf23e689db4a554dad4e68751f8ddf3, type: 3}
+      text: Fine, your wish. Might as well end you with humanity.
 --- !u!1001 &2045893920
 PrefabInstance:
   m_ObjectHideFlags: 0
