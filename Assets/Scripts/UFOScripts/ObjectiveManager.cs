@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -8,6 +9,10 @@ public class ObjectiveManager : MonoBehaviour
     [SerializeField] private AlienSpawner spawner;
     [SerializeField] private UnityEvent onAllPressed;
 
+    [Header("Intro Dialogue")]
+    [SerializeField] private DialogueManager dialogue;
+    [SerializeField] private string introSequenceId = "Finale";
+
     [Header("Press Audio")]
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip firstPressClip;
@@ -16,6 +21,7 @@ public class ObjectiveManager : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float pressVolume = 1f;
 
     public int Pressed { get; private set; }
+    public bool InteractionLocked { get; private set; }
     public event Action<int> ButtonPressed;
 
     private void Awake()
@@ -28,8 +34,15 @@ public class ObjectiveManager : MonoBehaviour
         }
     }
 
-    private void Start()
+    private IEnumerator Start()
     {
+        if (dialogue != null)
+        {
+            InteractionLocked = true;
+            yield return dialogue.PlayAndWait(introSequenceId);
+            InteractionLocked = false;
+        }
+
         spawner.SetTier(0);
     }
 

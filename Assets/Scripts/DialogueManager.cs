@@ -32,7 +32,7 @@ public class DialogueManager : MonoBehaviour
 
     [Header("Typewriter")]
     [SerializeField] private float charsPerSecond = 35f;
-    [SerializeField] private float holdTime = 1.5f;
+    [SerializeField] private float holdTime = 2f;
     [SerializeField] private float startDelay = 0.5f;
 
     [Header("Sound")]
@@ -70,12 +70,6 @@ public class DialogueManager : MonoBehaviour
 
     public bool IsPlaying => _routine != null;
 
-    public IEnumerator PlayAndWait(string id)
-    {
-        Play(id);
-        while (IsPlaying)
-            yield return null;
-    }
     private void Awake()
     {
         if (dialogueBox == null || nameText == null || bodyText == null)
@@ -90,6 +84,24 @@ public class DialogueManager : MonoBehaviour
         SetVisible(false);
     }
 
+    private void OnValidate()
+    {
+        if (sequences.Exists(s => s.id == "Finale")) return;
+
+        sequences.Add(new DialogueSequence
+        {
+            id = "Finale",
+            lines = new List<DialogueLine>
+            {
+                new DialogueLine { speakerName = "Alien", text = "I can't believe I was one of you this whole time..." },
+                new DialogueLine { speakerName = "Bob", text = "Yes. You always were. You were an experiment. The time has come, join us and let's take over humanity." },
+                new DialogueLine { speakerName = "Alien", text = "I could never join you. I believe in humanity." },
+                new DialogueLine { speakerName = "Alien", text = "They deserve to live. We can't take over humanity." },
+                new DialogueLine { speakerName = "Bob", text = "Fine, your wish. Might as well end you with humanity." }
+            }
+        });
+    }
+
     private void Update()
     {
         if (tutorialPanel == null || _introPlayed) return;
@@ -101,9 +113,15 @@ public class DialogueManager : MonoBehaviour
         else if (_tutorialSeen)
         {
             _introPlayed = true;
-            Debug.Log("[Dialogue] Tutorial closed, playing intro.");
             Play("Intro");
         }
+    }
+
+    public void PlayIntroOnce()
+    {
+        if (_introPlayed) return;
+        _introPlayed = true;
+        Play("Intro");
     }
 
     public void Play(string id)
@@ -122,8 +140,15 @@ public class DialogueManager : MonoBehaviour
         }
 
         Stop();
-        Debug.Log($"[Dialogue] Playing '{id}'.");
         _routine = StartCoroutine(RunSequence(sequence));
+    }
+
+    public IEnumerator PlayAndWait(string id)
+    {
+        Play(id);
+
+        while (IsPlaying)
+            yield return null;
     }
 
     public void Stop()
@@ -135,6 +160,9 @@ public class DialogueManager : MonoBehaviour
 
     [ContextMenu("Test Intro")]
     private void TestIntro() => Play("Intro");
+
+    [ContextMenu("Test Finale")]
+    private void TestFinale() => Play("Finale");
 
     private void SetVisible(bool visible)
     {
@@ -161,12 +189,6 @@ public class DialogueManager : MonoBehaviour
         _routine = null;
     }
 
-    public void PlayIntroOnce()
-    {
-        if (_introPlayed) return;
-        _introPlayed = true;
-        Play("Intro");
-    }
     private IEnumerator TypeLine(DialogueLine line)
     {
         nameText.text = line.speakerName;
@@ -191,23 +213,7 @@ public class DialogueManager : MonoBehaviour
             yield return new WaitForSecondsRealtime(delay);
         }
     }
-    private void OnValidate()
-    {
-        if (sequences.Exists(s => s.id == "Finale")) return;
 
-        sequences.Add(new DialogueSequence
-        {
-            id = "Finale",
-            lines = new List<DialogueLine>
-            {
-                new DialogueLine { speakerName = "Alien", text = "I can't believe I was one of you this whole time..." },
-                new DialogueLine { speakerName = "Bob", text = "Yes. You always were. You were an experiment. The time has come, join us and let's take over humanity." },
-                new DialogueLine { speakerName = "Alien", text = "I could never join you. I believe in humanity." },
-                new DialogueLine { speakerName = "Alien", text = "They deserve to live. We can't take over humanity." },
-                new DialogueLine { speakerName = "Bob", text = "Fine, your wish. Might as well end you with humanity." }
-            }
-        });
-    }
     private void PlayTypeSound()
     {
         if (audioSource == null || typeSound == null) return;
