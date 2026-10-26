@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class AlarmLights : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private ObjectiveManager objectiveManager;
+    
 
     [Header("Settings")]
     [SerializeField] private Color alarmColor = Color.red;
@@ -144,4 +146,6 @@ public class AlarmLights : MonoBehaviour
             lights[i].intensity = baseIntensities[i] * multiplier;
         }
     }
+
+    
 }
